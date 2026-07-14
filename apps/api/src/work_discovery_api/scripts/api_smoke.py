@@ -30,13 +30,31 @@ def main() -> None:
 
     questions = client.get(f"/v1/interviews/{interview_id}/questions")
     questions.raise_for_status()
-    first_question = questions.json()[0]["id"]
+    question_ids = [item["id"] for item in questions.json()]
 
-    answer = client.post(
-        f"/v1/interviews/{interview_id}/answers",
-        json={"question_id": first_question, "text": "월간 매출 보고서를 작성합니다."},
-    )
-    answer.raise_for_status()
+    early_build = client.post(f"/v1/interviews/{interview_id}/build-work-model")
+    assert early_build.status_code == 409
+
+    for index, question_id in enumerate(question_ids, start=1):
+        answer = client.post(
+            f"/v1/interviews/{interview_id}/answers",
+            json={"question_id": question_id, "text": f"{index}번 질문에 답합니다."},
+        )
+        answer.raise_for_status()
+
+    model = client.post(f"/v1/interviews/{interview_id}/build-work-model")
+    model.raise_for_status()
+    assert model.json()["schema_valid"] is True
+
+    confirmed = client.post(f"/v1/interviews/{interview_id}/playback/confirm")
+    confirmed.raise_for_status()
+    assert confirmed.json()["status"] == "FINALIZED"
+
+    audit = client.get(f"/v1/projects/{project_id}/audit-events")
+    audit.raise_for_status()
+    actions = {event["action"] for event in audit.json()}
+    assert "WORK_MODEL_BUILT" in actions
+    assert "PLAYBACK_CONFIRMED" in actions
     print("api smoke OK")
 
 

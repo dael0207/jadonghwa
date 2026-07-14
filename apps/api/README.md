@@ -1,6 +1,6 @@
 # Work Discovery API
 
-M0 Foundation API for local development.
+M0 Foundation plus M1/M2 repository and mock Work Model workflow.
 
 ## Run
 
@@ -10,13 +10,16 @@ python -m pip install -e .
 python -m uvicorn work_discovery_api.main:app --reload --port 8000
 ```
 
+By default the API uses the in-memory repository. Set `DATABASE_URL=postgresql://...` to use `PostgresRepository` after applying `infra/db/migrations/001_m0_foundation.sql`.
+
 ## Test
 
 ```bash
 cd apps/api
 python -m pytest
+python -m ruff check .
+python -m basedpyright
 python -m work_discovery_api.scripts.schema_smoke
-python -m work_discovery_api.scripts.migration_smoke
 python -m work_discovery_api.scripts.api_smoke
 python -m work_discovery_api.scripts.server_smoke
 ```

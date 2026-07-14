@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import uuid4
 
 from work_discovery_api.domain import (
@@ -14,6 +15,7 @@ from work_discovery_api.domain import (
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
+    AuditEventRead,
     ConsentRequest,
     InterviewRead,
     JsonObject,
@@ -30,6 +32,7 @@ class InterviewRecord:
     project_id: str
     status: InterviewStatus
     active_consent: bool
+    created_at: datetime
     answered_questions: set[str] = field(default_factory=set)
 
 
@@ -40,7 +43,7 @@ class MemoryStore:
     questions: dict[str, tuple[QuestionRead, ...]] = field(default_factory=dict)
     answers: dict[str, list[AnswerRead]] = field(default_factory=dict)
     work_models: dict[str, WorkModelRead] = field(default_factory=dict)
-    audit_events: list[tuple[str, AuditAction]] = field(default_factory=list)
+    audit_events: list[AuditEventRead] = field(default_factory=list)
 
     def create_project(self, name: str, workspace_name: str) -> ProjectRead:
         project_id = str(uuid4())
@@ -53,7 +56,11 @@ class MemoryStore:
             created_at=utc_now(),
         )
         self.projects[project_id] = project
-        self.audit_events.append((project_id, AuditAction.PROJECT_CREATED))
+        self.record_audit(
+            project_id,
+            AuditAction.PROJECT_CREATED,
+            {"project_id": project_id, "workspace_id": workspace_id},
+        )
         return project
 
     def create_interview(
@@ -68,30 +75,63 @@ class MemoryStore:
             project_id=project_id,
             status=transition(InterviewStatus.CREATED, InterviewStatus.CONSENT_PENDING),
             active_consent=False,
+            created_at=utc_now(),
         )
         self.interviews[interview_id] = record
         self.questions[interview_id] = questions
         self.answers[interview_id] = []
-        self.audit_events.append((interview_id, AuditAction.INTERVIEW_CREATED))
+        self.record_audit(
+            interview_id,
+            AuditAction.INTERVIEW_CREATED,
+            {"project_id": project_id, "interview_id": interview_id},
+        )
         return self.interview_read(record)
+
+    def get_interview(self, interview_id: str) -> InterviewRead:
+        return self.interview_read(self.require_interview(interview_id))
 
     def grant_consent(self, interview_id: str, consent: ConsentRequest) -> InterviewRead:
         record = self.require_interview(interview_id)
         if not consent.ai_processing or not consent.data_processing:
             record.status = transition(record.status, InterviewStatus.ABORTED)
+            self.record_audit(
+                interview_id,
+                AuditAction.CONSENT_REVOKED,
+                {
+                    "project_id": record.project_id,
+                    "interview_id": interview_id,
+                    "reason": "declined",
+                },
+            )
             return self.interview_read(record)
         record.status = transition(record.status, InterviewStatus.CONSENTED)
         record.status = transition(record.status, InterviewStatus.INTAKE_IN_PROGRESS)
         record.active_consent = True
-        self.audit_events.append((interview_id, AuditAction.CONSENT_GRANTED))
+        self.record_audit(
+            interview_id,
+            AuditAction.CONSENT_GRANTED,
+            {
+                "project_id": record.project_id,
+                "interview_id": interview_id,
+                "audio_recording": consent.audio_recording,
+            },
+        )
         return self.interview_read(record)
 
     def revoke_consent(self, interview_id: str) -> InterviewRead:
         record = self.require_interview(interview_id)
         record.status = transition(record.status, InterviewStatus.CONSENT_REVOKED)
         record.active_consent = False
-        self.audit_events.append((interview_id, AuditAction.CONSENT_REVOKED))
+        self.record_audit(
+            interview_id,
+            AuditAction.CONSENT_REVOKED,
+            {"project_id": record.project_id, "interview_id": interview_id},
+        )
         return self.interview_read(record)
+
+    def get_questions(self, interview_id: str) -> tuple[QuestionRead, ...]:
+        self.require_interview(interview_id)
+        return self.questions[interview_id]
 
     def record_answer(self, interview_id: str, answer: AnswerCreate) -> AnswerRead:
         record = self.require_interview(interview_id)
@@ -116,8 +156,21 @@ class MemoryStore:
             record.answered_questions.add(answer.question_id)
         if len(record.answered_questions) >= len(self.questions[interview_id]):
             record.status = transition(record.status, InterviewStatus.MODEL_BUILDING)
-        self.audit_events.append((interview_id, AuditAction.ANSWER_RECORDED))
+        self.record_audit(
+            interview_id,
+            AuditAction.ANSWER_RECORDED,
+            {
+                "project_id": record.project_id,
+                "interview_id": interview_id,
+                "question_id": answer.question_id,
+                "answer_id": answer_id,
+            },
+        )
         return answer_read
+
+    def list_answers(self, interview_id: str) -> tuple[AnswerRead, ...]:
+        self.require_interview(interview_id)
+        return tuple(self.answers[interview_id])
 
     def get_work_model(self, project_id: str) -> WorkModelRead:
         self.require_project(project_id)
@@ -134,6 +187,10 @@ class MemoryStore:
         self.work_models[project_id] = model
         return model
 
+    def get_interview_work_model(self, interview_id: str) -> WorkModelRead:
+        record = self.require_interview(interview_id)
+        return self.get_work_model(record.project_id)
+
     def replace_work_model(
         self,
         project_id: str,
@@ -141,16 +198,63 @@ class MemoryStore:
         valid: bool,
     ) -> WorkModelRead:
         self.require_project(project_id)
+        previous = self.work_models.get(project_id)
         model = WorkModelRead(
             project_id=project_id,
-            version=self.get_work_model(project_id).version + 1,
+            version=1 if previous is None else previous.version + 1,
             payload=payload,
             schema_valid=valid,
             created_at=utc_now(),
         )
         self.work_models[project_id] = model
-        self.audit_events.append((project_id, AuditAction.WORK_MODEL_VALIDATED))
+        self.record_audit(
+            project_id,
+            AuditAction.WORK_MODEL_VALIDATED,
+            {"project_id": project_id, "valid": valid},
+        )
         return model
+
+    def transition_interview(
+        self,
+        interview_id: str,
+        target: InterviewStatus,
+    ) -> InterviewRead:
+        record = self.require_interview(interview_id)
+        record.status = transition(record.status, target)
+        return self.interview_read(record)
+
+    def record_audit(
+        self,
+        subject_id: str,
+        action: AuditAction,
+        metadata: JsonObject,
+    ) -> AuditEventRead:
+        event = AuditEventRead(
+            id=str(uuid4()),
+            subject_id=subject_id,
+            action=action,
+            metadata=metadata,
+            created_at=utc_now(),
+        )
+        self.audit_events.append(event)
+        return event
+
+    def list_interview_audit_events(self, interview_id: str) -> tuple[AuditEventRead, ...]:
+        self.require_interview(interview_id)
+        return tuple(
+            event
+            for event in self.audit_events
+            if event.subject_id == interview_id
+            or event.metadata.get("interview_id") == interview_id
+        )
+
+    def list_project_audit_events(self, project_id: str) -> tuple[AuditEventRead, ...]:
+        self.require_project(project_id)
+        return tuple(
+            event
+            for event in self.audit_events
+            if event.subject_id == project_id or event.metadata.get("project_id") == project_id
+        )
 
     def require_project(self, project_id: str) -> ProjectRead:
         project = self.projects.get(project_id)
@@ -180,5 +284,5 @@ class MemoryStore:
             status=record.status,
             active_consent=record.active_consent,
             answered_count=len(record.answered_questions),
-            created_at=utc_now(),
+            created_at=record.created_at,
         )

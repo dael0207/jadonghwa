@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+from work_discovery_api.domain import AuditAction, InterviewStatus
+from work_discovery_api.models import (
+    AnswerCreate,
+    AnswerRead,
+    AuditEventRead,
+    ConsentRequest,
+    InterviewRead,
+    JsonObject,
+    ProjectRead,
+    QuestionRead,
+    WorkModelRead,
+)
+
+
+class WorkDiscoveryRepository(Protocol):
+    def create_project(self, name: str, workspace_name: str) -> ProjectRead: ...
+    def require_project(self, project_id: str) -> ProjectRead: ...
+    def create_interview(
+        self,
+        project_id: str,
+        questions: tuple[QuestionRead, ...],
+    ) -> InterviewRead: ...
+    def get_interview(self, interview_id: str) -> InterviewRead: ...
+    def grant_consent(self, interview_id: str, consent: ConsentRequest) -> InterviewRead: ...
+    def revoke_consent(self, interview_id: str) -> InterviewRead: ...
+    def get_questions(self, interview_id: str) -> tuple[QuestionRead, ...]: ...
+    def record_answer(self, interview_id: str, answer: AnswerCreate) -> AnswerRead: ...
+    def list_answers(self, interview_id: str) -> tuple[AnswerRead, ...]: ...
+    def get_work_model(self, project_id: str) -> WorkModelRead: ...
+    def get_interview_work_model(self, interview_id: str) -> WorkModelRead: ...
+    def replace_work_model(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> WorkModelRead: ...
+    def transition_interview(
+        self,
+        interview_id: str,
+        target: InterviewStatus,
+    ) -> InterviewRead: ...
+    def record_audit(
+        self,
+        subject_id: str,
+        action: AuditAction,
+        metadata: JsonObject,
+    ) -> AuditEventRead: ...
+    def list_interview_audit_events(self, interview_id: str) -> tuple[AuditEventRead, ...]: ...
+    def list_project_audit_events(self, project_id: str) -> tuple[AuditEventRead, ...]: ...

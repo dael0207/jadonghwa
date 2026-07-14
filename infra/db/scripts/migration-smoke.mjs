@@ -15,6 +15,13 @@ const requiredTables = new Set([
   "work_models",
   "audit_events",
   "deletion_jobs",
+  "question_bank_versions",
+]);
+
+const requiredIndexes = new Set([
+  "idx_interview_sessions_project_id",
+  "idx_questions_bank_position",
+  "idx_audit_events_subject_id",
 ]);
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -31,6 +38,16 @@ const missing = [...requiredTables].filter((table) => !created.has(table));
 
 if (missing.length > 0) {
   throw new Error(`migration missing tables: ${missing.join(", ")}`);
+}
+
+const indexResult = await db.query(
+  "select indexname from pg_indexes where schemaname = 'public'",
+);
+const indexes = new Set(indexResult.rows.map((row) => row.indexname));
+const missingIndexes = [...requiredIndexes].filter((index) => !indexes.has(index));
+
+if (missingIndexes.length > 0) {
+  throw new Error(`migration missing indexes: ${missingIndexes.join(", ")}`);
 }
 
 console.log("pglite migration smoke OK");

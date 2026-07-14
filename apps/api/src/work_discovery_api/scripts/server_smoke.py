@@ -21,7 +21,7 @@ def main() -> None:
             time.sleep(0.1)
         response = httpx.get("http://127.0.0.1:8765/openapi.json", timeout=5.0)
         response.raise_for_status()
-        assert response.json()["info"]["title"] == "Work Discovery AI M0 API"
+        assert response.json()["info"]["title"] == "Work Discovery AI API"
     finally:
         server.should_exit = True
         thread.join(timeout=10.0)

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from work_discovery_api.domain import AnswerStatus, InterviewStatus
+from work_discovery_api.domain import AnswerStatus, AuditAction, InterviewStatus
 
 type JsonScalar = str | int | float | bool | None
-type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
+type JsonValue = JsonScalar | Sequence[JsonValue] | Mapping[str, JsonValue]
 type JsonObject = dict[str, JsonValue]
 
 
@@ -92,6 +93,16 @@ class WorkModelRead(BaseModel):
     version: int
     payload: JsonObject
     schema_valid: bool
+    created_at: datetime
+
+
+class AuditEventRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    subject_id: str
+    action: AuditAction
+    metadata: JsonObject
     created_at: datetime
 
 

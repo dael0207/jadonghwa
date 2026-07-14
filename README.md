@@ -38,19 +38,45 @@
 - `question-bank-v1.json`
 - `openapi-mvp.yaml`
 
-## M0 로컬 실행
+## 로컬 실행
 
+API 서버:
 ```bash
 cd apps/api
 python -m pip install -e .
 python -m uvicorn work_discovery_api.main:app --reload --port 8000
 ```
 
-## M0 검증
+웹 UI:
+```bash
+cd apps/web
+npm install
+npm run dev -- -H 127.0.0.1 -p 3000
+```
+
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+
+## 저장소와 데이터베이스
+
+- 기본 실행은 `DATABASE_URL`이 없을 때 in-memory 저장소를 사용한다.
+- `DATABASE_URL=postgresql://...`을 설정하면 API가 `PostgresRepository`를 선택한다.
+- PostgreSQL을 사용할 때는 먼저 `infra/db/migrations/001_m0_foundation.sql`을 대상 DB에 적용해야 한다.
+- 로컬 개발자가 PostgreSQL 없이 검증할 수 있도록 PGlite 기반 마이그레이션 스모크가 유지된다.
+
+마이그레이션 스모크:
+```bash
+cd infra/db
+npm install
+npm run migration:smoke
+```
+
+## M1/M2 검증
 
 ```bash
 cd apps/api
 python -m pytest
+python -m ruff check .
+python -m basedpyright
 python -m work_discovery_api.scripts.schema_smoke
 python -m work_discovery_api.scripts.api_smoke
 python -m work_discovery_api.scripts.server_smoke
@@ -58,12 +84,33 @@ python -m work_discovery_api.scripts.server_smoke
 cd ../../infra/db
 npm install
 npm run migration:smoke
+npm audit --audit-level=moderate
 
 cd ../../apps/web
 npm install
 npm run typecheck
+npm run build
 npm audit --audit-level=moderate
 ```
+
+## M2 Mock Builder
+
+M2의 Work Model Builder는 LLM을 호출하지 않는다. 10문항의 최신 답변을 deterministic 규칙으로 요약해 `schemas/work-model-v1.schema.json`을 통과하는 Work Model 초안을 생성한다. 이 결과는 인터뷰 답변 기반 playback 확인용 초안이며, 자동화 후보 분석이나 G1 명세 생성 결과가 아니다.
+
+M2까지 의도적으로 구현하지 않는 것:
+
+- 실제 LLM 호출
+- STT 및 음성 녹음
+- 외부 업무 시스템 실행
+- 실제 자격증명 수집
+- 자동화 후보 분석
+- 실제 G1 명세 생성
+
+새 의존성:
+
+- `psycopg[binary]`: `DATABASE_URL` 기반 PostgreSQL 저장소 연결
+- `ky`: 웹 UI의 API 호출 클라이언트
+- `playwright`: 로컬 웹 스모크 검증
 
 ## 핵심 설계 원칙
 

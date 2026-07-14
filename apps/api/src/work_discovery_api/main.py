@@ -3,29 +3,52 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from fastapi import FastAPI, HTTPException, Response, status
+from fastapi.middleware.cors import CORSMiddleware
 
 from work_discovery_api.contracts import default_contract_paths, initial_questions, validate_payload
-from work_discovery_api.domain import ConsentRequiredError, InvalidTransitionError
+from work_discovery_api.domain import (
+    AuditAction,
+    ConsentRequiredError,
+    InterviewStatus,
+    InvalidTransitionError,
+)
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
+    AuditEventRead,
     ConsentRequest,
     InterviewRead,
+    JsonObject,
     ProjectCreate,
     ProjectRead,
     QuestionRead,
     ValidationRead,
     WorkModelRead,
     WorkModelValidateRequest,
+    utc_now,
 )
-from work_discovery_api.store import MemoryStore
+from work_discovery_api.repository import WorkDiscoveryRepository
+from work_discovery_api.repository_factory import create_repository
+from work_discovery_api.work_model_builder import (
+    DeterministicWorkModelBuilder,
+    InsufficientAnswersError,
+    WorkModelBuildInput,
+)
 
 
-def create_app(store: MemoryStore | None = None) -> FastAPI:
-    app_store = store or MemoryStore()
+def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
+    app_store = store or create_repository()
+    builder = DeterministicWorkModelBuilder()
     app = FastAPI(
-        title="Work Discovery AI M0 API",
-        version="0.1.0",
+        title="Work Discovery AI API",
+        version="0.2.0",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     paths = default_contract_paths()
 
@@ -69,7 +92,7 @@ def create_app(store: MemoryStore | None = None) -> FastAPI:
     @app.get("/v1/interviews/{interview_id}", response_model=InterviewRead)
     def get_interview(interview_id: str) -> InterviewRead:
         try:
-            return app_store.interview_read(app_store.require_interview(interview_id))
+            return app_store.get_interview(interview_id)
         except KeyError as error:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 
@@ -95,8 +118,7 @@ def create_app(store: MemoryStore | None = None) -> FastAPI:
     @app.get("/v1/interviews/{interview_id}/questions", response_model=list[QuestionRead])
     def get_questions(interview_id: str) -> Sequence[QuestionRead]:
         try:
-            app_store.require_interview(interview_id)
-            return app_store.questions[interview_id]
+            return app_store.get_questions(interview_id)
         except KeyError as error:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 
@@ -122,6 +144,113 @@ def create_app(store: MemoryStore | None = None) -> FastAPI:
         except KeyError as error:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 
+    @app.post("/v1/interviews/{interview_id}/build-work-model", response_model=WorkModelRead)
+    def build_work_model(interview_id: str) -> WorkModelRead:
+        try:
+            interview = app_store.get_interview(interview_id)
+            if not interview.active_consent:
+                raise ConsentRequiredError(interview_id=interview_id)
+            if interview.status != InterviewStatus.MODEL_BUILDING:
+                detail = f"interview must be MODEL_BUILDING, got {interview.status}"
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+            project = app_store.require_project(interview.project_id)
+            payload = builder.build(
+                WorkModelBuildInput(
+                    project=project,
+                    interview=interview,
+                    questions=app_store.get_questions(interview_id),
+                    answers=app_store.list_answers(interview_id),
+                ),
+            )
+            validation_error = validate_payload(paths.work_model_schema, payload)
+            if validation_error is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=validation_error,
+                )
+            model = app_store.replace_work_model(interview.project_id, payload, valid=True)
+            app_store.transition_interview(interview_id, InterviewStatus.PLAYBACK_CONFIRMATION)
+            app_store.record_audit(
+                interview_id,
+                AuditAction.WORK_MODEL_BUILT,
+                {"project_id": interview.project_id, "interview_id": interview_id},
+            )
+            return model
+        except ConsentRequiredError as error:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error)) from error
+        except InsufficientAnswersError as error:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+        except KeyError as error:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+        except InvalidTransitionError as error:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+
+    @app.get("/v1/interviews/{interview_id}/work-model", response_model=WorkModelRead)
+    def get_interview_work_model(interview_id: str) -> WorkModelRead:
+        try:
+            return app_store.get_interview_work_model(interview_id)
+        except KeyError as error:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+
+    @app.post("/v1/interviews/{interview_id}/playback/confirm", response_model=InterviewRead)
+    def confirm_playback(interview_id: str) -> InterviewRead:
+        try:
+            interview = app_store.get_interview(interview_id)
+            if interview.status != InterviewStatus.PLAYBACK_CONFIRMATION:
+                detail = f"interview must be PLAYBACK_CONFIRMATION, got {interview.status}"
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+            model = app_store.get_work_model(interview.project_id)
+            payload = playback_payload(model.payload, confirmed=True)
+            app_store.replace_work_model(interview.project_id, payload, valid=True)
+            app_store.transition_interview(interview_id, InterviewStatus.OPPORTUNITY_ANALYSIS_READY)
+            finalized = app_store.transition_interview(interview_id, InterviewStatus.FINALIZED)
+            app_store.record_audit(
+                interview_id,
+                AuditAction.PLAYBACK_CONFIRMED,
+                {"project_id": interview.project_id, "interview_id": interview_id},
+            )
+            return finalized
+        except KeyError as error:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+        except InvalidTransitionError as error:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+
+    @app.post("/v1/interviews/{interview_id}/playback/reject", response_model=InterviewRead)
+    def reject_playback(interview_id: str) -> InterviewRead:
+        try:
+            interview = app_store.get_interview(interview_id)
+            if interview.status != InterviewStatus.PLAYBACK_CONFIRMATION:
+                detail = f"interview must be PLAYBACK_CONFIRMATION, got {interview.status}"
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+            model = app_store.get_work_model(interview.project_id)
+            payload = playback_payload(model.payload, confirmed=False)
+            app_store.replace_work_model(interview.project_id, payload, valid=True)
+            rejected = app_store.transition_interview(interview_id, InterviewStatus.NEEDS_EVIDENCE)
+            app_store.record_audit(
+                interview_id,
+                AuditAction.PLAYBACK_REJECTED,
+                {"project_id": interview.project_id, "interview_id": interview_id},
+            )
+            return rejected
+        except KeyError as error:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+        except InvalidTransitionError as error:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+
+    @app.get("/v1/interviews/{interview_id}/audit-events", response_model=list[AuditEventRead])
+    def get_interview_audit_events(interview_id: str) -> Sequence[AuditEventRead]:
+        try:
+            return app_store.list_interview_audit_events(interview_id)
+        except KeyError as error:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+
+    @app.get("/v1/projects/{project_id}/audit-events", response_model=list[AuditEventRead])
+    def get_project_audit_events(project_id: str) -> Sequence[AuditEventRead]:
+        try:
+            return app_store.list_project_audit_events(project_id)
+        except KeyError as error:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+
     @app.post("/v1/projects/{project_id}/work-model/validate", response_model=ValidationRead)
     def validate_work_model(project_id: str, payload: WorkModelValidateRequest) -> ValidationRead:
         try:
@@ -137,6 +266,18 @@ def create_app(store: MemoryStore | None = None) -> FastAPI:
         )
 
     return app
+
+
+def playback_payload(payload: JsonObject, confirmed: bool) -> JsonObject:
+    updated = dict(payload)
+    gate = updated.get("understanding_gate")
+    updated["model_status"] = "CONFIRMED" if confirmed else "DISPUTED"
+    if isinstance(gate, dict):
+        gate["playback_confirmed"] = confirmed
+        gate["result"] = "READY_FOR_ANALYSIS" if confirmed else "NEEDS_EVIDENCE"
+        updated["understanding_gate"] = gate
+    updated["updated_at"] = utc_now().isoformat()
+    return updated
 
 
 app = create_app()

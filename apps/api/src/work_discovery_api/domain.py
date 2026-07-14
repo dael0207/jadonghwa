@@ -34,6 +34,9 @@ class AuditAction(StrEnum):
     CONSENT_REVOKED = "CONSENT_REVOKED"
     ANSWER_RECORDED = "ANSWER_RECORDED"
     WORK_MODEL_VALIDATED = "WORK_MODEL_VALIDATED"
+    WORK_MODEL_BUILT = "WORK_MODEL_BUILT"
+    PLAYBACK_CONFIRMED = "PLAYBACK_CONFIRMED"
+    PLAYBACK_REJECTED = "PLAYBACK_REJECTED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,11 +74,19 @@ def allowed_targets(current: InterviewStatus) -> frozenset[InterviewStatus]:
             )
         case InterviewStatus.MODEL_BUILDING:
             return frozenset(
-                {InterviewStatus.PLAYBACK_CONFIRMATION, InterviewStatus.NEEDS_EVIDENCE},
+                {
+                    InterviewStatus.PLAYBACK_CONFIRMATION,
+                    InterviewStatus.NEEDS_EVIDENCE,
+                    InterviewStatus.CONSENT_REVOKED,
+                },
             )
         case InterviewStatus.PLAYBACK_CONFIRMATION:
             return frozenset(
-                {InterviewStatus.OPPORTUNITY_ANALYSIS_READY, InterviewStatus.NEEDS_EVIDENCE},
+                {
+                    InterviewStatus.OPPORTUNITY_ANALYSIS_READY,
+                    InterviewStatus.NEEDS_EVIDENCE,
+                    InterviewStatus.CONSENT_REVOKED,
+                },
             )
         case InterviewStatus.OPPORTUNITY_ANALYSIS_READY:
             return frozenset({InterviewStatus.FINALIZED})
