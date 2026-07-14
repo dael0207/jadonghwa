@@ -1,0 +1,538 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/work-model-v1.schema.json",
+  "title": "Work Discovery AI Work Model v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "model_id",
+    "project_id",
+    "version",
+    "lifecycle_stage",
+    "title",
+    "model_status",
+    "participants",
+    "goals",
+    "processes",
+    "evidence_summary",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "model_id": { "$ref": "#/$defs/id" },
+    "project_id": { "$ref": "#/$defs/id" },
+    "version": { "type": "integer", "minimum": 1 },
+    "lifecycle_stage": {
+      "type": "string",
+      "enum": ["AS_IS", "TO_BE", "PILOT", "RETIRED"]
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "summary": { "type": "string", "maxLength": 4000 },
+    "model_status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "NEEDS_EVIDENCE",
+        "PLAYBACK_PENDING",
+        "CONFIRMED",
+        "DISPUTED",
+        "ARCHIVED"
+      ]
+    },
+    "participants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/participant" }
+    },
+    "goals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/goal" }
+    },
+    "processes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/process" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" },
+      "default": []
+    },
+    "systems": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/system" },
+      "default": []
+    },
+    "decisions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/decision" },
+      "default": []
+    },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" },
+      "default": []
+    },
+    "exceptions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exception" },
+      "default": []
+    },
+    "pain_points": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/painPoint" },
+      "default": []
+    },
+    "metrics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/metric" },
+      "default": []
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/constraint" },
+      "default": []
+    },
+    "non_goals": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+    "understanding_gate": { "$ref": "#/$defs/understandingGate" },
+    "evidence_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_count", "source_link_rate", "confirmed_claim_rate", "open_contradiction_count"],
+      "properties": {
+        "claim_count": { "type": "integer", "minimum": 0 },
+        "source_link_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "confirmed_claim_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "open_contradiction_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "created_at": { "$ref": "#/$defs/dateTime" },
+    "updated_at": { "$ref": "#/$defs/dateTime" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "dateTime": { "type": "string", "format": "date-time" },
+    "claimState": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "CLAIMED",
+        "INFERRED",
+        "CORROBORATED",
+        "CONFIRMED",
+        "DISPUTED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "sourceRefs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true,
+      "default": []
+    },
+    "assertionMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "confidence", "source_refs"],
+      "properties": {
+        "state": { "$ref": "#/$defs/claimState" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "source_refs": { "$ref": "#/$defs/sourceRefs" },
+        "validated_by": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "default": []
+        },
+        "last_validated_at": {
+          "oneOf": [
+            { "$ref": "#/$defs/dateTime" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name", "roles", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": {
+          "type": "string",
+          "enum": ["PERSON_ALIAS", "ROLE", "TEAM", "ORG_UNIT", "EXTERNAL_PARTY"]
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "responsibilities": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "beneficiary_refs", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "beneficiary_refs": { "$ref": "#/$defs/sourceRefs" },
+        "success_measures": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "owner_refs",
+        "performer_refs",
+        "goal_refs",
+        "trigger",
+        "completion_condition",
+        "steps",
+        "variants",
+        "meta"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "owner_refs": { "$ref": "#/$defs/sourceRefs" },
+        "performer_refs": { "$ref": "#/$defs/sourceRefs" },
+        "goal_refs": { "$ref": "#/$defs/sourceRefs" },
+        "trigger": { "$ref": "#/$defs/event" },
+        "completion_condition": { "$ref": "#/$defs/event" },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "variants": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/variant" }
+        },
+        "frequency": { "$ref": "#/$defs/frequency" },
+        "volume": { "$ref": "#/$defs/volume" },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "meta"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "event_type": {
+          "type": "string",
+          "enum": ["TIME", "MESSAGE", "FILE", "MANUAL", "SYSTEM", "CONDITION", "OTHER"]
+        },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sequence",
+        "name",
+        "action",
+        "performer_refs",
+        "input_refs",
+        "output_refs",
+        "system_refs",
+        "decision_refs",
+        "exception_refs",
+        "meta"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "action": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "performer_refs": { "$ref": "#/$defs/sourceRefs" },
+        "input_refs": { "$ref": "#/$defs/sourceRefs" },
+        "output_refs": { "$ref": "#/$defs/sourceRefs" },
+        "system_refs": { "$ref": "#/$defs/sourceRefs" },
+        "decision_refs": { "$ref": "#/$defs/sourceRefs" },
+        "exception_refs": { "$ref": "#/$defs/sourceRefs" },
+        "next_step_refs": { "$ref": "#/$defs/sourceRefs" },
+        "duration_minutes": { "$ref": "#/$defs/rangeNumber" },
+        "wait_minutes": { "$ref": "#/$defs/rangeNumber" },
+        "manual_touch": { "type": "boolean" },
+        "reversible": { "type": "boolean" },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "condition", "step_refs", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "condition": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "step_refs": { "$ref": "#/$defs/sourceRefs" },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name", "direction", "data_classification", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": {
+          "type": "string",
+          "enum": ["INPUT", "OUTPUT", "DOCUMENT", "FILE", "MESSAGE", "RECORD", "DATASET", "OTHER"]
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "direction": { "type": "string", "enum": ["IN", "OUT", "BOTH"] },
+        "format": { "type": "string", "maxLength": 100 },
+        "data_fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dataField" },
+          "default": []
+        },
+        "data_classification": {
+          "type": "string",
+          "enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "PERSONAL", "SENSITIVE", "UNKNOWN"]
+        },
+        "retention": { "type": "string", "maxLength": 500 },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "dataField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "data_type", "required", "sensitivity"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "data_type": {
+          "type": "string",
+          "enum": ["STRING", "NUMBER", "BOOLEAN", "DATE", "DATETIME", "ENUM", "OBJECT", "ARRAY", "BINARY", "UNKNOWN"]
+        },
+        "required": { "type": "boolean" },
+        "sensitivity": {
+          "type": "string",
+          "enum": ["NONE", "PERSONAL", "SENSITIVE", "CONFIDENTIAL", "UNKNOWN"]
+        }
+      }
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind", "access_method", "stability", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "kind": {
+          "type": "string",
+          "enum": ["WEB", "DESKTOP", "MOBILE", "EMAIL", "MESSAGING", "SPREADSHEET", "DATABASE", "API", "FILE_SYSTEM", "OTHER"]
+        },
+        "access_method": {
+          "type": "string",
+          "enum": ["MANUAL_UI", "API", "FILE_IMPORT_EXPORT", "EMAIL", "UNKNOWN"]
+        },
+        "stability": {
+          "type": "string",
+          "enum": ["STABLE", "CHANGING", "UNKNOWN"]
+        },
+        "permission_notes": { "type": "string", "maxLength": 1000 },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "question", "input_refs", "rule_refs", "decision_owner_refs", "outcomes", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "question": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "input_refs": { "$ref": "#/$defs/sourceRefs" },
+        "rule_refs": { "$ref": "#/$defs/sourceRefs" },
+        "decision_owner_refs": { "$ref": "#/$defs/sourceRefs" },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "escalation_condition": { "type": "string", "maxLength": 1000 },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "rule_type", "owner_refs", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "rule_type": {
+          "type": "string",
+          "enum": ["POLICY", "THRESHOLD", "CALCULATION", "PRIORITY", "COMPLIANCE", "HEURISTIC", "OTHER"]
+        },
+        "owner_refs": { "$ref": "#/$defs/sourceRefs" },
+        "effective_from": {
+          "oneOf": [
+            { "type": "string", "format": "date" },
+            { "type": "null" }
+          ]
+        },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "exception": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "condition", "handling", "impact", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "condition": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "handling": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "impact": {
+          "type": "string",
+          "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]
+        },
+        "frequency": { "$ref": "#/$defs/frequency" },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "painPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "category", "severity", "target_refs", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "category": {
+          "type": "string",
+          "enum": ["TIME", "WAIT", "ERROR", "REWORK", "DUPLICATION", "SEARCH", "HANDOFF", "COGNITIVE_LOAD", "COMPLIANCE", "USER_EXPERIENCE", "OTHER"]
+        },
+        "severity": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "target_refs": { "$ref": "#/$defs/sourceRefs" },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "unit", "value", "scope", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "value": { "$ref": "#/$defs/rangeNumber" },
+        "scope": {
+          "type": "string",
+          "enum": ["PER_CASE", "PER_DAY", "PER_WEEK", "PER_MONTH", "PER_YEAR", "PERSON", "TEAM", "COMPANY", "OTHER"]
+        },
+        "measurement_method": { "type": "string", "maxLength": 1000 },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "statement", "hard", "meta"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "category": {
+          "type": "string",
+          "enum": ["LEGAL", "PRIVACY", "SECURITY", "BUDGET", "TIME", "TECHNICAL", "ORGANIZATIONAL", "ACCESS", "OTHER"]
+        },
+        "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "hard": { "type": "boolean" },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "frequency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "period", "meta"],
+      "properties": {
+        "count": { "$ref": "#/$defs/rangeNumber" },
+        "period": {
+          "type": "string",
+          "enum": ["DAY", "WEEK", "MONTH", "QUARTER", "YEAR", "EVENT", "IRREGULAR", "UNKNOWN"]
+        },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "period", "scope", "meta"],
+      "properties": {
+        "count": { "$ref": "#/$defs/rangeNumber" },
+        "period": {
+          "type": "string",
+          "enum": ["DAY", "WEEK", "MONTH", "QUARTER", "YEAR", "UNKNOWN"]
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["PERSON", "TEAM", "COMPANY", "UNKNOWN"]
+        },
+        "meta": { "$ref": "#/$defs/assertionMeta" }
+      }
+    },
+    "rangeNumber": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "typical": { "type": "number", "minimum": 0 }
+      }
+    },
+    "understandingGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "epistemic_coverage",
+        "operational_readiness",
+        "risk_clarity",
+        "recent_case_present",
+        "playback_confirmed",
+        "open_material_gaps",
+        "result"
+      ],
+      "properties": {
+        "epistemic_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "operational_readiness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "risk_clarity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recent_case_present": { "type": "boolean" },
+        "playback_confirmed": { "type": "boolean" },
+        "open_material_gaps": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "result": {
+          "type": "string",
+          "enum": ["CONTINUE_INTERVIEW", "NEEDS_EVIDENCE", "READY_WITH_ASSUMPTIONS", "READY_FOR_ANALYSIS", "NOT_SUITABLE"]
+        }
+      }
+    }
+  }
+}

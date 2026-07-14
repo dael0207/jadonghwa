@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/interview-state-v1.schema.json",
+  "title": "Work Discovery AI Interview State v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "interview_id",
+    "project_id",
+    "state",
+    "mode",
+    "round",
+    "consent",
+    "coverage",
+    "open_targets",
+    "recent_target_ids",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "interview_id": { "$ref": "#/$defs/id" },
+    "project_id": { "$ref": "#/$defs/id" },
+    "state": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "CONSENT_PENDING",
+        "CONSENTED",
+        "INTAKE_IN_PROGRESS",
+        "TRANSCRIBING",
+        "TRANSCRIPT_CONFIRMATION",
+        "MODEL_BUILDING",
+        "DEEP_INTERVIEW",
+        "PLAYBACK_CONFIRMATION",
+        "OPPORTUNITY_ANALYSIS_READY",
+        "FINALIZED",
+        "PAUSED",
+        "NEEDS_EVIDENCE",
+        "NEEDS_HUMAN_REVIEW",
+        "CONSENT_REVOKED",
+        "ABORTED",
+        "DELETION_PENDING"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["QUICK", "STANDARD", "DEEP"]
+    },
+    "round": { "type": "integer", "minimum": 0 },
+    "max_rounds": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ai_use", "data_processing", "audio_recording", "audio_retention", "confirmed_at"],
+      "properties": {
+        "ai_use": { "type": "boolean" },
+        "data_processing": { "type": "boolean" },
+        "audio_recording": { "type": "boolean" },
+        "audio_retention": {
+          "type": "string",
+          "enum": ["DELETE_AFTER_TRANSCRIPT_CONFIRMATION", "KEEP_UNTIL_PROJECT_DELETION", "NOT_APPLICABLE"]
+        },
+        "confirmed_at": {
+          "oneOf": [
+            { "type": "string", "format": "date-time" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["epistemic", "operational", "risk_clarity", "source_link_rate", "confirmed_claim_rate"],
+      "properties": {
+        "epistemic": { "type": "number", "minimum": 0, "maximum": 1 },
+        "operational": { "type": "number", "minimum": 0, "maximum": 1 },
+        "risk_clarity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source_link_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "confirmed_claim_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "open_targets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/target" }
+    },
+    "current_question": {
+      "oneOf": [
+        { "$ref": "#/$defs/question" },
+        { "type": "null" }
+      ]
+    },
+    "recent_target_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "maxItems": 20
+    },
+    "open_contradiction_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "default": []
+    },
+    "needs_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+    "user_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "burden_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "skip_count": { "type": "integer", "minimum": 0 },
+        "last_activity_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "closure_audit": {
+      "oneOf": [
+        { "$ref": "#/$defs/closureAudit" },
+        { "type": "null" }
+      ]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "dimension", "field_path", "materiality", "uncertainty", "answerability", "information_gain", "novelty", "burden", "priority"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "dimension": {
+          "type": "string",
+          "enum": ["ROLE", "GOAL", "SCOPE", "TRIGGER", "FLOW", "INPUT_OUTPUT", "TOOLS", "DECISION", "RULE", "EXCEPTION", "METRIC", "PAIN", "RISK", "AUTHORITY", "EVIDENCE", "SOLUTION_BOUNDARY"]
+        },
+        "field_path": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "materiality": { "$ref": "#/$defs/unit" },
+        "uncertainty": { "$ref": "#/$defs/unit" },
+        "answerability": { "$ref": "#/$defs/unit" },
+        "information_gain": { "$ref": "#/$defs/unit" },
+        "novelty": { "$ref": "#/$defs/unit" },
+        "burden": { "$ref": "#/$defs/unit" },
+        "repetition_penalty": { "$ref": "#/$defs/unit" },
+        "priority": { "type": "number" },
+        "reason": { "type": "string", "maxLength": 1000 }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question_id", "target_id", "text", "question_type", "why_it_matters", "created_at"],
+      "properties": {
+        "question_id": { "$ref": "#/$defs/id" },
+        "target_id": { "$ref": "#/$defs/id" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "question_type": {
+          "type": "string",
+          "enum": ["CLARIFY", "RECENT_CASE", "COUNTEREXAMPLE", "CUE", "BOUNDARY", "AUTHORITY", "TRADEOFF", "RECOVERY", "EVIDENCE", "CLOSURE_AUDIT"]
+        },
+        "why_it_matters": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "answer_format_hint": { "type": "string", "maxLength": 500 },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "closureAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_pass", "recent_case_pass", "contradiction_pass", "risk_authority_pass", "playback_pass", "solution_discriminability_pass", "result", "audited_at"],
+      "properties": {
+        "coverage_pass": { "type": "boolean" },
+        "recent_case_pass": { "type": "boolean" },
+        "contradiction_pass": { "type": "boolean" },
+        "risk_authority_pass": { "type": "boolean" },
+        "playback_pass": { "type": "boolean" },
+        "solution_discriminability_pass": { "type": "boolean" },
+        "result": {
+          "type": "string",
+          "enum": ["CONTINUE_INTERVIEW", "NEEDS_EVIDENCE", "READY_WITH_ASSUMPTIONS", "READY_FOR_ANALYSIS", "NOT_SUITABLE"]
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "audited_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "unit": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

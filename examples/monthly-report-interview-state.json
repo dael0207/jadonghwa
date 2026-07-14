@@ -1,0 +1,64 @@
+{
+  "interview_id": "interview-monthly-report-001",
+  "project_id": "project-monthly-report",
+  "state": "PLAYBACK_CONFIRMATION",
+  "mode": "STANDARD",
+  "round": 9,
+  "max_rounds": 15,
+  "consent": {
+    "ai_use": true,
+    "data_processing": true,
+    "audio_recording": true,
+    "audio_retention": "DELETE_AFTER_TRANSCRIPT_CONFIRMATION",
+    "confirmed_at": "2026-07-14T12:00:00+09:00"
+  },
+  "coverage": {
+    "epistemic": 0.88,
+    "operational": 0.79,
+    "risk_clarity": 0.84,
+    "source_link_rate": 0.97,
+    "confirmed_claim_rate": 0.78
+  },
+  "open_targets": [
+    {
+      "id": "target-api-access",
+      "dimension": "TOOLS",
+      "field_path": "/systems/0/access_method",
+      "materiality": 0.8,
+      "uncertainty": 0.7,
+      "answerability": 0.4,
+      "information_gain": 0.6,
+      "novelty": 1.0,
+      "burden": 0.5,
+      "repetition_penalty": 0.0,
+      "priority": 0.084,
+      "reason": "API 접근 가능 여부가 해결 방식과 구축비를 바꾼다."
+    }
+  ],
+  "current_question": {
+    "question_id": "question-playback-001",
+    "target_id": "target-api-access",
+    "text": "제가 정리한 업무 흐름에서 실제 순서와 다르거나 빠진 단계가 있나요?",
+    "question_type": "CLOSURE_AUDIT",
+    "why_it_matters": "자동화 후보를 분석하기 전에 현재 업무 지도를 확인해야 합니다.",
+    "answer_format_hint": "단계 이름과 수정 내용을 말해주세요.",
+    "created_at": "2026-07-14T12:00:00+09:00"
+  },
+  "recent_target_ids": [
+    "target-recent-case",
+    "target-decision-rule",
+    "target-exception"
+  ],
+  "open_contradiction_ids": [],
+  "needs_evidence": [
+    "ERP API 또는 파일 사양 확인"
+  ],
+  "user_state": {
+    "burden_score": 0.35,
+    "skip_count": 1,
+    "last_activity_at": "2026-07-14T12:00:00+09:00"
+  },
+  "closure_audit": null,
+  "created_at": "2026-07-14T12:00:00+09:00",
+  "updated_at": "2026-07-14T12:00:00+09:00"
+}

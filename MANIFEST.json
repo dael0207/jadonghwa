@@ -1,0 +1,98 @@
+{
+  "package": "work-discovery-ai-blueprint",
+  "version": "0.1.0",
+  "generated_date": "2026-07-14",
+  "file_count": 18,
+  "files": [
+    {
+      "path": "DECISIONS-AND-NEXT.md",
+      "bytes": 4762,
+      "sha256": "6005b7b368bb05e4d23fb54f4afea770fb047748f8bdfdcca293f36c589f99b1"
+    },
+    {
+      "path": "R003-automation-discovery-framework.md",
+      "bytes": 9156,
+      "sha256": "74c76677c1edf3d38efa94f77323ecfc9b699f0b5dbe29fb0f0f311892f8c79b"
+    },
+    {
+      "path": "R004-work-ontology.md",
+      "bytes": 6726,
+      "sha256": "c7218dbace8bf9e495167799405259e0b2376ae93b400fff0fe396ced17b1dd4"
+    },
+    {
+      "path": "R005-interview-methodology.md",
+      "bytes": 7370,
+      "sha256": "b701e07048f23cbf4a474830619fcf0a09d408097446420c6090fd9d8179a4d0"
+    },
+    {
+      "path": "R006-interview-engine.md",
+      "bytes": 6448,
+      "sha256": "000aebca253261f771ffae2d19d97adc3674d90d926821de9e81fac9ec168d89"
+    },
+    {
+      "path": "R007-automation-reasoning-engine.md",
+      "bytes": 6052,
+      "sha256": "00810a99c66e556d492689692ed0a2becf30b6785b30672343dd95bcce79d364"
+    },
+    {
+      "path": "R008-program-generation.md",
+      "bytes": 5055,
+      "sha256": "1924809d559dd7d2d900f1c6cc67ea09f9acf3c63f78aa0b1fc54f5a4b30a4a6"
+    },
+    {
+      "path": "R009-evaluation-framework.md",
+      "bytes": 5345,
+      "sha256": "60c427f4d87c7224b410671cc3f2ed2a8ed9b0ca524bf11c9ab52d6b81beec1d"
+    },
+    {
+      "path": "R010-mvp-spec.md",
+      "bytes": 12217,
+      "sha256": "624e1f3a29c564041b2d13b9bb21b456f04a012788570ee45d3506d5118bfc50"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4524,
+      "sha256": "c60d7fab64294df9dc57c86e12c760badd7d430d040d71c70a58cd195e5b1831"
+    },
+    {
+      "path": "examples/monthly-report-interview-state.json",
+      "bytes": 1941,
+      "sha256": "7625d0f0899e3fd8f60a9c2416cd4eb3fd3d4b0df3177acf3a298a58006ec20d"
+    },
+    {
+      "path": "examples/monthly-report-opportunity.json",
+      "bytes": 5668,
+      "sha256": "26711dcd08b795578f09167e5cd2352fe4e3c381220c5a9b79a82e07b834a9d6"
+    },
+    {
+      "path": "examples/monthly-report-work-model.json",
+      "bytes": 21082,
+      "sha256": "7d3aae01a3a609549215174ed1e03b494cd2f0a27834ecfe5d32d932fb81f319"
+    },
+    {
+      "path": "openapi-mvp.yaml",
+      "bytes": 22427,
+      "sha256": "4b64e58dc85c60679f73f37a5a006ab26f41a338e8d50b475a29e7635da4a547"
+    },
+    {
+      "path": "question-bank-v1.json",
+      "bytes": 18644,
+      "sha256": "db886f846067d984f512013279c327ec33145c05c370761a59bfb1ba0e4d1a21"
+    },
+    {
+      "path": "schemas/interview-state-v1.schema.json",
+      "bytes": 6808,
+      "sha256": "2ce4b68b247adb4030a448299ff3e2bddf648b0cfaaeebd0fee27953ffc09ea4"
+    },
+    {
+      "path": "schemas/opportunity-v1.schema.json",
+      "bytes": 8313,
+      "sha256": "5cfd722d6290c4de4e2d086a72494157a87388a882d6e758a0d0e6919cdba233"
+    },
+    {
+      "path": "schemas/work-model-v1.schema.json",
+      "bytes": 17959,
+      "sha256": "456126814e2fc1f208bc81f54e7ae829e99ec4e480f6a41c3f3b21a8b22d9b1e"
+    }
+  ]
+}

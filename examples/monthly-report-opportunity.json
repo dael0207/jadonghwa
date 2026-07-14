@@ -1,0 +1,185 @@
+{
+  "opportunity_id": "opp-monthly-report-001",
+  "project_id": "project-monthly-report",
+  "work_model_id": "wm-monthly-report-v1",
+  "target_refs": [
+    "step-export",
+    "step-update-excel",
+    "step-review-variance"
+  ],
+  "problem_statement": "ERP 추출 데이터를 Excel 템플릿에 수작업으로 반영하고 이상 증감을 찾는 과정에서 재작업과 검색 시간이 발생한다.",
+  "recommendation": {
+    "solution_mode": "INTEGRATION_WORKFLOW",
+    "title": "매출 데이터 정규화·보고서 초안 생성 워크플로",
+    "rationale": "정형 CSV의 검증·변환·계산은 결정론적으로 처리하고, 이상 증감 설명은 초안만 제안해 사람이 확인하는 혼합 방식이 적합하다.",
+    "scope": [
+      "CSV 스키마 검증",
+      "보고서 데이터 갱신",
+      "증감 후보 표시",
+      "설명 초안",
+      "팀장 검토용 내보내기"
+    ],
+    "autonomy_level": 2
+  },
+  "alternative_options": [
+    {
+      "solution_mode": "EXISTING_TOOL",
+      "title": "Power Query 기반 표준 템플릿",
+      "rationale": "전용 개발 전에 Excel의 데이터 가져오기와 변환 기능으로 핵심 재작업을 줄일 수 있다.",
+      "scope": [
+        "CSV 가져오기",
+        "열 매핑",
+        "수식 갱신"
+      ],
+      "autonomy_level": 1
+    },
+    {
+      "solution_mode": "CUSTOM_APP",
+      "title": "월간 보고 케이스 관리 웹앱",
+      "rationale": "검토·승인·증감 설명 이력을 장기적으로 관리하려면 전용 상태 관리가 유리하다.",
+      "scope": [
+        "데이터 업로드",
+        "검증",
+        "이상 항목 검토",
+        "승인 이력",
+        "보고서 내보내기"
+      ],
+      "autonomy_level": 2
+    }
+  ],
+  "rejected_options": [
+    {
+      "solution_mode": "APPROVAL_AGENT",
+      "reason": "현재는 ERP API 접근 가능성과 이메일 실행 권한이 확인되지 않았고, 자동 발송은 사용자 non-goal이다."
+    }
+  ],
+  "scores": {
+    "value": 68,
+    "feasibility": 78,
+    "risk": 2,
+    "evidence_confidence": 0.78,
+    "oversight": 2,
+    "portfolio_class": "QUICK_WIN",
+    "score_explanation": [
+      "월 1회라 처리량은 낮지만 재작업과 검증 부담이 명확하다.",
+      "입력이 정형 CSV이고 산출물 형식이 안정적이다.",
+      "거래처 매출은 기밀 데이터이므로 외부 모델 전송과 접근 통제가 필요하다."
+    ]
+  },
+  "gate": {
+    "result": "ENABLE_FIRST",
+    "blocked_reasons": [
+      "ERP API 또는 안정적인 파일 내보내기 형식을 확인해야 한다."
+    ]
+  },
+  "human_role": {
+    "retained_responsibilities": [
+      "이상 증감 원인 최종 확인",
+      "보고서 정확성 확인",
+      "경영진 발송"
+    ],
+    "approval_points": [
+      "초안 생성 후 팀장 검토"
+    ],
+    "exception_handling": [
+      "CSV 스키마 변경",
+      "ERP 데이터 누락",
+      "원인 불명 이상치"
+    ],
+    "override_available": true
+  },
+  "benefit_estimate": {
+    "basis": "USER_ESTIMATE",
+    "annual_manual_hours": {
+      "min": 9,
+      "max": 34,
+      "typical": 17
+    },
+    "annual_rework_hours": {
+      "min": 1,
+      "max": 5,
+      "typical": 2
+    },
+    "recoverable_hours": {
+      "min": 5,
+      "max": 22,
+      "typical": 12
+    },
+    "annual_total_benefit": {
+      "currency": "KRW",
+      "min": 150000,
+      "max": 1100000,
+      "typical": 500000
+    },
+    "build_cost": {
+      "currency": "KRW",
+      "min": 0,
+      "max": 5000000,
+      "typical": 1000000
+    },
+    "annual_run_cost": {
+      "currency": "KRW",
+      "min": 0,
+      "max": 600000,
+      "typical": 120000
+    },
+    "assumptions": [
+      "연 12회 수행",
+      "시간 절감률 50~70%",
+      "기존 Excel 기능을 먼저 활용하면 구축비가 낮아질 수 있음"
+    ]
+  },
+  "risks": [
+    {
+      "category": "SECURITY",
+      "level": 2,
+      "description": "거래처별 매출 데이터가 외부로 유출될 수 있다.",
+      "control": "내부 처리 또는 비식별화, 최소 권한, 저장 암호화, 외부 모델 미학습 설정",
+      "residual_level": 1
+    },
+    {
+      "category": "QUALITY",
+      "level": 2,
+      "description": "열 변경이나 누락을 탐지하지 못하면 합계가 틀릴 수 있다.",
+      "control": "스키마 검증, 합계 대사, 검토 전 자동 발송 금지",
+      "residual_level": 1
+    }
+  ],
+  "prerequisites": [
+    "ERP 내보내기 형식 확인",
+    "샘플 CSV 6개월치 확보",
+    "팀장 수용 기준 확인"
+  ],
+  "evidence_refs": [
+    "answer-024",
+    "claim-031",
+    "validation-001"
+  ],
+  "open_questions": [
+    "ERP API가 제공되는가?",
+    "CSV 열 이름이 변경된 이력은 얼마나 자주 있는가?"
+  ],
+  "validation_experiment": {
+    "hypothesis": "기존 CSV 6개월치를 자동 변환하면 수작업 붙여넣기 없이 동일한 합계와 증감 목록을 만들 수 있다.",
+    "method": "샘플 CSV를 표준 변환 스크립트와 Power Query로 각각 처리하고 기존 보고서와 비교한다.",
+    "sample": "최근 6개월 CSV와 확정 보고서",
+    "success_criteria": [
+      "합계 일치율 100%",
+      "열 변경 탐지 100%",
+      "초안 생성 시간 10분 이하"
+    ]
+  },
+  "mvp_scope": [
+    "CSV 업로드",
+    "스키마 검증",
+    "매출 집계",
+    "전월 대비 증감 표시",
+    "Excel 내보내기"
+  ],
+  "non_goals": [
+    "ERP 직접 로그인",
+    "경영진 자동 메일 발송",
+    "AI의 이상 원인 최종 결정"
+  ],
+  "created_at": "2026-07-14T12:00:00+09:00"
+}

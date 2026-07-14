@@ -1,0 +1,825 @@
+{
+  "model_id": "wm-monthly-report-v1",
+  "project_id": "project-monthly-report",
+  "version": 1,
+  "lifecycle_stage": "AS_IS",
+  "title": "월간 매출 보고서 작성",
+  "summary": "ERP 매출 데이터를 내려받아 Excel 템플릿에 반영하고 이상 증감을 설명한 뒤 경영진에게 메일로 보내는 업무",
+  "model_status": "CONFIRMED",
+  "participants": [
+    {
+      "id": "role-sales-ops",
+      "kind": "ROLE",
+      "name": "영업기획 담당자",
+      "roles": [
+        "수행자",
+        "보고서 작성자"
+      ],
+      "responsibilities": [
+        "매출 데이터 정합성 확인",
+        "월간 보고서 제출"
+      ],
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "role-sales-manager",
+      "kind": "ROLE",
+      "name": "영업기획 팀장",
+      "roles": [
+        "검토자"
+      ],
+      "responsibilities": [
+        "이상 수치 검토"
+      ],
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "stakeholder-executives",
+      "kind": "EXTERNAL_PARTY",
+      "name": "경영진",
+      "roles": [
+        "결과 수신자"
+      ],
+      "responsibilities": [],
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "goals": [
+    {
+      "id": "goal-monthly-visibility",
+      "statement": "경영진이 전월 실적과 이상 증감을 확인할 수 있게 한다.",
+      "beneficiary_refs": [
+        "stakeholder-executives"
+      ],
+      "success_measures": [
+        "마감일 오전까지 보고서 발송",
+        "합계 오류 없음"
+      ],
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "processes": [
+    {
+      "id": "process-monthly-report",
+      "name": "월간 매출 보고서 작성",
+      "description": "월초 ERP 추출부터 보고서 메일 발송까지",
+      "owner_refs": [
+        "role-sales-ops"
+      ],
+      "performer_refs": [
+        "role-sales-ops"
+      ],
+      "goal_refs": [
+        "goal-monthly-visibility"
+      ],
+      "trigger": {
+        "description": "매월 첫 영업일 오전",
+        "event_type": "TIME",
+        "meta": {
+          "state": "CONFIRMED",
+          "confidence": 0.9,
+          "source_refs": [
+            "answer-001"
+          ],
+          "validated_by": [
+            "user-001"
+          ],
+          "last_validated_at": "2026-07-14T12:00:00+09:00"
+        }
+      },
+      "completion_condition": {
+        "description": "팀장 검토 후 경영진 메일 발송 완료",
+        "event_type": "MESSAGE",
+        "meta": {
+          "state": "CONFIRMED",
+          "confidence": 0.9,
+          "source_refs": [
+            "answer-001"
+          ],
+          "validated_by": [
+            "user-001"
+          ],
+          "last_validated_at": "2026-07-14T12:00:00+09:00"
+        }
+      },
+      "steps": [
+        {
+          "id": "step-export",
+          "sequence": 1,
+          "name": "ERP 데이터 다운로드",
+          "action": "ERP에서 전월 매출 데이터를 CSV로 내려받는다.",
+          "performer_refs": [
+            "role-sales-ops"
+          ],
+          "input_refs": [],
+          "output_refs": [
+            "artifact-sales-csv"
+          ],
+          "system_refs": [
+            "system-erp"
+          ],
+          "decision_refs": [],
+          "exception_refs": [
+            "exception-export-failure"
+          ],
+          "next_step_refs": [
+            "step-update-excel"
+          ],
+          "duration_minutes": {
+            "min": 5,
+            "max": 15,
+            "typical": 8
+          },
+          "wait_minutes": {
+            "min": 0,
+            "max": 5,
+            "typical": 1
+          },
+          "manual_touch": true,
+          "reversible": true,
+          "meta": {
+            "state": "CONFIRMED",
+            "confidence": 0.9,
+            "source_refs": [
+              "answer-001"
+            ],
+            "validated_by": [
+              "user-001"
+            ],
+            "last_validated_at": "2026-07-14T12:00:00+09:00"
+          }
+        },
+        {
+          "id": "step-update-excel",
+          "sequence": 2,
+          "name": "Excel 템플릿 갱신",
+          "action": "CSV 데이터를 기존 Excel 템플릿에 붙여넣고 수식을 갱신한다.",
+          "performer_refs": [
+            "role-sales-ops"
+          ],
+          "input_refs": [
+            "artifact-sales-csv",
+            "artifact-report-template"
+          ],
+          "output_refs": [
+            "artifact-report-draft"
+          ],
+          "system_refs": [
+            "system-excel"
+          ],
+          "decision_refs": [],
+          "exception_refs": [
+            "exception-column-change"
+          ],
+          "next_step_refs": [
+            "step-review-variance"
+          ],
+          "duration_minutes": {
+            "min": 15,
+            "max": 45,
+            "typical": 25
+          },
+          "wait_minutes": {
+            "min": 0,
+            "max": 0,
+            "typical": 0
+          },
+          "manual_touch": true,
+          "reversible": true,
+          "meta": {
+            "state": "CONFIRMED",
+            "confidence": 0.9,
+            "source_refs": [
+              "answer-001"
+            ],
+            "validated_by": [
+              "user-001"
+            ],
+            "last_validated_at": "2026-07-14T12:00:00+09:00"
+          }
+        },
+        {
+          "id": "step-review-variance",
+          "sequence": 3,
+          "name": "이상 증감 검토",
+          "action": "전월 대비 큰 증감이 있는 거래처를 확인하고 설명을 작성한다.",
+          "performer_refs": [
+            "role-sales-ops"
+          ],
+          "input_refs": [
+            "artifact-report-draft"
+          ],
+          "output_refs": [
+            "artifact-report-reviewed"
+          ],
+          "system_refs": [
+            "system-excel",
+            "system-email"
+          ],
+          "decision_refs": [
+            "decision-significant-variance"
+          ],
+          "exception_refs": [],
+          "next_step_refs": [
+            "step-approve-send"
+          ],
+          "duration_minutes": {
+            "min": 20,
+            "max": 90,
+            "typical": 40
+          },
+          "wait_minutes": {
+            "min": 0,
+            "max": 1440,
+            "typical": 60
+          },
+          "manual_touch": true,
+          "reversible": true,
+          "meta": {
+            "state": "CONFIRMED",
+            "confidence": 0.9,
+            "source_refs": [
+              "answer-001"
+            ],
+            "validated_by": [
+              "user-001"
+            ],
+            "last_validated_at": "2026-07-14T12:00:00+09:00"
+          }
+        },
+        {
+          "id": "step-approve-send",
+          "sequence": 4,
+          "name": "팀장 검토 및 발송",
+          "action": "팀장이 보고서를 확인한 뒤 경영진에게 이메일로 발송한다.",
+          "performer_refs": [
+            "role-sales-manager"
+          ],
+          "input_refs": [
+            "artifact-report-reviewed"
+          ],
+          "output_refs": [
+            "artifact-report-final"
+          ],
+          "system_refs": [
+            "system-email"
+          ],
+          "decision_refs": [],
+          "exception_refs": [],
+          "next_step_refs": [],
+          "duration_minutes": {
+            "min": 5,
+            "max": 20,
+            "typical": 10
+          },
+          "wait_minutes": {
+            "min": 10,
+            "max": 480,
+            "typical": 60
+          },
+          "manual_touch": true,
+          "reversible": false,
+          "meta": {
+            "state": "CONFIRMED",
+            "confidence": 0.9,
+            "source_refs": [
+              "answer-001"
+            ],
+            "validated_by": [
+              "user-001"
+            ],
+            "last_validated_at": "2026-07-14T12:00:00+09:00"
+          }
+        }
+      ],
+      "variants": [
+        {
+          "id": "variant-new-account",
+          "name": "신규 거래처 포함 월",
+          "condition": "신규 거래처 매출이 포함된 경우 담당 영업에게 설명을 확인한다.",
+          "step_refs": [
+            "step-review-variance"
+          ],
+          "meta": {
+            "state": "CORROBORATED",
+            "confidence": 0.85,
+            "source_refs": [
+              "answer-017",
+              "answer-022"
+            ],
+            "validated_by": [
+              "user-001"
+            ],
+            "last_validated_at": "2026-07-14T12:00:00+09:00"
+          }
+        }
+      ],
+      "frequency": {
+        "count": {
+          "min": 1,
+          "max": 1,
+          "typical": 1
+        },
+        "period": "MONTH",
+        "meta": {
+          "state": "CONFIRMED",
+          "confidence": 0.9,
+          "source_refs": [
+            "answer-001"
+          ],
+          "validated_by": [
+            "user-001"
+          ],
+          "last_validated_at": "2026-07-14T12:00:00+09:00"
+        }
+      },
+      "volume": {
+        "count": {
+          "min": 1,
+          "max": 1,
+          "typical": 1
+        },
+        "period": "MONTH",
+        "scope": "TEAM",
+        "meta": {
+          "state": "CONFIRMED",
+          "confidence": 0.9,
+          "source_refs": [
+            "answer-001"
+          ],
+          "validated_by": [
+            "user-001"
+          ],
+          "last_validated_at": "2026-07-14T12:00:00+09:00"
+        }
+      },
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact-sales-csv",
+      "kind": "FILE",
+      "name": "전월 매출 CSV",
+      "direction": "IN",
+      "format": "CSV",
+      "data_fields": [
+        {
+          "name": "거래처",
+          "data_type": "STRING",
+          "required": true,
+          "sensitivity": "CONFIDENTIAL"
+        },
+        {
+          "name": "매출액",
+          "data_type": "NUMBER",
+          "required": true,
+          "sensitivity": "CONFIDENTIAL"
+        }
+      ],
+      "data_classification": "CONFIDENTIAL",
+      "retention": "회사 문서 정책에 따름",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "artifact-report-template",
+      "kind": "FILE",
+      "name": "월간 보고서 템플릿",
+      "direction": "IN",
+      "format": "XLSX",
+      "data_fields": [],
+      "data_classification": "INTERNAL",
+      "retention": "지속 보관",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "artifact-report-draft",
+      "kind": "OUTPUT",
+      "name": "월간 보고서 초안",
+      "direction": "OUT",
+      "format": "XLSX",
+      "data_fields": [],
+      "data_classification": "CONFIDENTIAL",
+      "retention": "회사 문서 정책에 따름",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "artifact-report-reviewed",
+      "kind": "OUTPUT",
+      "name": "검토용 월간 보고서",
+      "direction": "OUT",
+      "format": "XLSX",
+      "data_fields": [],
+      "data_classification": "CONFIDENTIAL",
+      "retention": "회사 문서 정책에 따름",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "artifact-report-final",
+      "kind": "OUTPUT",
+      "name": "발송 완료 월간 보고서",
+      "direction": "OUT",
+      "format": "XLSX",
+      "data_fields": [],
+      "data_classification": "CONFIDENTIAL",
+      "retention": "회사 문서 정책에 따름",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "system-erp",
+      "name": "사내 ERP",
+      "kind": "WEB",
+      "access_method": "FILE_IMPORT_EXPORT",
+      "stability": "STABLE",
+      "permission_notes": "영업기획 조회 권한 필요",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "system-excel",
+      "name": "Microsoft Excel",
+      "kind": "SPREADSHEET",
+      "access_method": "MANUAL_UI",
+      "stability": "STABLE",
+      "permission_notes": "",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "system-email",
+      "name": "회사 이메일",
+      "kind": "EMAIL",
+      "access_method": "EMAIL",
+      "stability": "STABLE",
+      "permission_notes": "회사 계정 필요",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "id": "decision-significant-variance",
+      "question": "이상 증감으로 설명이 필요한가?",
+      "input_refs": [
+        "artifact-report-draft"
+      ],
+      "rule_refs": [
+        "rule-variance-threshold"
+      ],
+      "decision_owner_refs": [
+        "role-sales-ops"
+      ],
+      "outcomes": [
+        "설명 작성",
+        "추가 확인 없이 진행"
+      ],
+      "escalation_condition": "신규 거래처 또는 원인을 확인할 수 없는 경우 담당 영업에게 문의",
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule-variance-threshold",
+      "statement": "전월 대비 매출이 30% 이상 증가 또는 감소하면 설명 대상을 검토한다.",
+      "rule_type": "THRESHOLD",
+      "owner_refs": [
+        "role-sales-manager"
+      ],
+      "effective_from": null,
+      "meta": {
+        "state": "CORROBORATED",
+        "confidence": 0.85,
+        "source_refs": [
+          "answer-015",
+          "answer-021"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "exception-export-failure",
+      "condition": "ERP 다운로드가 실패하거나 데이터가 비어 있음",
+      "handling": "ERP 담당자에게 문의하고 재다운로드한다.",
+      "impact": "HIGH",
+      "frequency": {
+        "count": {
+          "min": 0,
+          "max": 1,
+          "typical": 0
+        },
+        "period": "MONTH",
+        "meta": {
+          "state": "CLAIMED",
+          "confidence": 0.55,
+          "source_refs": [
+            "answer-019"
+          ],
+          "validated_by": [
+            "user-001"
+          ],
+          "last_validated_at": "2026-07-14T12:00:00+09:00"
+        }
+      },
+      "meta": {
+        "state": "CLAIMED",
+        "confidence": 0.55,
+        "source_refs": [
+          "answer-019"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "exception-column-change",
+      "condition": "ERP CSV 열 순서 또는 이름이 바뀜",
+      "handling": "Excel 수식 범위를 수정하고 합계를 다시 확인한다.",
+      "impact": "HIGH",
+      "frequency": {
+        "count": {
+          "min": 0,
+          "max": 2,
+          "typical": 1
+        },
+        "period": "YEAR",
+        "meta": {
+          "state": "CLAIMED",
+          "confidence": 0.6,
+          "source_refs": [
+            "answer-020"
+          ],
+          "validated_by": [
+            "user-001"
+          ],
+          "last_validated_at": "2026-07-14T12:00:00+09:00"
+        }
+      },
+      "meta": {
+        "state": "CLAIMED",
+        "confidence": 0.6,
+        "source_refs": [
+          "answer-020"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "pain_points": [
+    {
+      "id": "pain-copy-paste",
+      "statement": "CSV 열이 바뀌면 붙여넣기와 수식 검증을 다시 해야 한다.",
+      "category": "REWORK",
+      "severity": 4,
+      "target_refs": [
+        "step-update-excel"
+      ],
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "pain-variance-search",
+      "statement": "이상 증감 원인을 찾기 위해 메일과 담당자를 반복 확인한다.",
+      "category": "SEARCH",
+      "severity": 3,
+      "target_refs": [
+        "step-review-variance"
+      ],
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric-total-time",
+      "name": "월간 수작업 시간",
+      "unit": "minutes",
+      "value": {
+        "min": 45,
+        "max": 170,
+        "typical": 85
+      },
+      "scope": "PER_MONTH",
+      "measurement_method": "최근 세 번 수행자의 추정",
+      "meta": {
+        "state": "CLAIMED",
+        "confidence": 0.65,
+        "source_refs": [
+          "answer-024"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "id": "constraint-confidential-data",
+      "category": "SECURITY",
+      "statement": "거래처별 매출 데이터는 회사 외부에 공개할 수 없다.",
+      "hard": true,
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    }
+  ],
+  "non_goals": [
+    "경영진에게 보고서를 자동 발송하지 않는다.",
+    "매출 이상 원인을 AI가 최종 확정하지 않는다."
+  ],
+  "understanding_gate": {
+    "epistemic_coverage": 0.9,
+    "operational_readiness": 0.84,
+    "risk_clarity": 0.88,
+    "recent_case_present": true,
+    "playback_confirmed": true,
+    "open_material_gaps": [
+      "ERP API 사용 가능 여부 확인 필요"
+    ],
+    "result": "READY_WITH_ASSUMPTIONS"
+  },
+  "evidence_summary": {
+    "claim_count": 38,
+    "source_link_rate": 0.97,
+    "confirmed_claim_rate": 0.82,
+    "open_contradiction_count": 0
+  },
+  "created_at": "2026-07-14T12:00:00+09:00",
+  "updated_at": "2026-07-14T12:00:00+09:00"
+}
