@@ -19,14 +19,16 @@
 
 ## 연구 문서
 
-1. `R003-automation-discovery-framework.md` — 무엇을 왜 개선·자동화할지 판단하는 기준
-2. `R004-work-ontology.md` — 사용자 업무를 저장하는 표준 구조
-3. `R005-interview-methodology.md` — 어떤 순서와 원칙으로 인터뷰할지
-4. `R006-interview-engine.md` — 인터뷰 상태 머신과 AI 파이프라인
-5. `R007-automation-reasoning-engine.md` — 자동화 후보 생성·평가·설명 엔진
-6. `R008-program-generation.md` — 선택된 후보를 프로그램 명세로 변환
-7. `R009-evaluation-framework.md` — 정확도·안전성·효용 평가
-8. `R010-mvp-spec.md` — 첫 번째 제품 범위와 구현 계획
+1. `R001-project-definition.md` — 프로젝트 정의, 미션, 사용자, 범위
+2. `R002-market-competitor-research.md` — 시장, 경쟁 제품, 실제 업무 자동화 사례
+3. `R003-automation-discovery-framework.md` — 무엇을 왜 개선·자동화할지 판단하는 기준
+4. `R004-work-ontology.md` — 사용자 업무를 저장하는 표준 구조
+5. `R005-interview-methodology.md` — 어떤 순서와 원칙으로 인터뷰할지
+6. `R006-interview-engine.md` — 인터뷰 상태 머신과 AI 파이프라인
+7. `R007-automation-reasoning-engine.md` — 자동화 후보 생성·평가·설명 엔진
+8. `R008-program-generation.md` — 선택된 후보를 프로그램 명세로 변환
+9. `R009-evaluation-framework.md` — 정확도·안전성·효용 평가
+10. `R010-mvp-spec.md` — 첫 번째 제품 범위와 구현 계획
 
 ## 구현 보조 산출물
 

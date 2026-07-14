@@ -2,12 +2,22 @@
   "package": "work-discovery-ai-blueprint",
   "version": "0.1.0",
   "generated_date": "2026-07-14",
-  "file_count": 18,
+  "file_count": 20,
   "files": [
     {
       "path": "DECISIONS-AND-NEXT.md",
       "bytes": 4762,
       "sha256": "6005b7b368bb05e4d23fb54f4afea770fb047748f8bdfdcca293f36c589f99b1"
+    },
+    {
+      "path": "R001-project-definition.md",
+      "bytes": 8793,
+      "sha256": "744f2153c1dcf11fc4dcd557590f7c642ef084656be8c19419cf900cebb4d8d9"
+    },
+    {
+      "path": "R002-market-competitor-research.md",
+      "bytes": 15182,
+      "sha256": "1d78483ed4c6cd01756a63b34ec51126d8ddf84da3ba9dd4b55275500fee8393"
     },
     {
       "path": "R003-automation-discovery-framework.md",
@@ -51,8 +61,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 4524,
-      "sha256": "c60d7fab64294df9dc57c86e12c760badd7d430d040d71c70a58cd195e5b1831"
+      "bytes": 4706,
+      "sha256": "1c2c71e13ed314c10118caf385b5ee4ae382ad5a33c86b65b2f8374f45a5ca3e"
     },
     {
       "path": "examples/monthly-report-interview-state.json",
