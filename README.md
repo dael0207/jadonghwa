@@ -52,9 +52,17 @@ python -m uvicorn work_discovery_api.main:app --reload --port 8000
 cd apps/api
 python -m pytest
 python -m work_discovery_api.scripts.schema_smoke
-python -m work_discovery_api.scripts.migration_smoke
 python -m work_discovery_api.scripts.api_smoke
 python -m work_discovery_api.scripts.server_smoke
+
+cd ../../infra/db
+npm install
+npm run migration:smoke
+
+cd ../../apps/web
+npm install
+npm run typecheck
+npm audit --audit-level=moderate
 ```
 
 ## 핵심 설계 원칙

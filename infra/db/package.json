@@ -1,0 +1,12 @@
+{
+  "name": "work-discovery-db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migration:smoke": "node scripts/migration-smoke.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.14"
+  }
+}
