@@ -38,6 +38,25 @@
 - `question-bank-v1.json`
 - `openapi-mvp.yaml`
 
+## M0 로컬 실행
+
+```bash
+cd apps/api
+python -m pip install -e .
+python -m uvicorn work_discovery_api.main:app --reload --port 8000
+```
+
+## M0 검증
+
+```bash
+cd apps/api
+python -m pytest
+python -m work_discovery_api.scripts.schema_smoke
+python -m work_discovery_api.scripts.migration_smoke
+python -m work_discovery_api.scripts.api_smoke
+python -m work_discovery_api.scripts.server_smoke
+```
+
 ## 핵심 설계 원칙
 
 1. **자동화 전에 가치와 프로세스를 본다.** 없애거나 단순화할 수 있는 일을 먼저 자동화하지 않는다.

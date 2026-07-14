@@ -1,0 +1,61 @@
+[project]
+name = "work-discovery-api"
+version = "0.1.0"
+description = "M0 Foundation API for Work Discovery AI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.136",
+  "httpx>=0.28",
+  "jsonschema>=4.25",
+  "pydantic>=2.13",
+  "pyyaml>=6.0",
+  "uvicorn>=0.38",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "COM812",
+  "D",
+  "CPY001",
+  "FBT001",
+  "FBT002",
+  "TD002",
+  "TD003",
+  "FIX002",
+  "C901",
+  "PLR0911",
+  "PLR0915",
+  "PLR2004",
+  "TC001",
+  "TC003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "D", "PLR2004"]
+"src/work_discovery_api/scripts/**/*.py" = ["S101", "T201", "D", "PLR2004"]
+
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["src", "tests"]
+reportAny = "none"
+reportExplicitAny = "error"
+reportUnknownArgumentType = "none"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnusedFunction = "none"
+reportUnusedCallResult = "none"
+reportUnannotatedClassAttribute = "none"
+reportImplicitOverride = "none"
