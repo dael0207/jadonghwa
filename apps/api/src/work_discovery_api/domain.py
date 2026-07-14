@@ -35,8 +35,13 @@ class AuditAction(StrEnum):
     ANSWER_RECORDED = "ANSWER_RECORDED"
     WORK_MODEL_VALIDATED = "WORK_MODEL_VALIDATED"
     WORK_MODEL_BUILT = "WORK_MODEL_BUILT"
+    WORK_MODEL_REBUILD_REQUESTED = "WORK_MODEL_REBUILD_REQUESTED"
+    WORK_MODEL_REBUILT = "WORK_MODEL_REBUILT"
     PLAYBACK_CONFIRMED = "PLAYBACK_CONFIRMED"
     PLAYBACK_REJECTED = "PLAYBACK_REJECTED"
+    EVIDENCE_ADDED = "EVIDENCE_ADDED"
+    ANSWER_REVISED = "ANSWER_REVISED"
+    OPPORTUNITY_DRAFT_GENERATED = "OPPORTUNITY_DRAFT_GENERATED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,7 +98,13 @@ def allowed_targets(current: InterviewStatus) -> frozenset[InterviewStatus]:
         case InterviewStatus.PAUSED:
             return frozenset({InterviewStatus.INTAKE_IN_PROGRESS, InterviewStatus.CONSENT_REVOKED})
         case InterviewStatus.NEEDS_EVIDENCE:
-            return frozenset({InterviewStatus.INTAKE_IN_PROGRESS, InterviewStatus.PAUSED})
+            return frozenset(
+                {
+                    InterviewStatus.INTAKE_IN_PROGRESS,
+                    InterviewStatus.MODEL_BUILDING,
+                    InterviewStatus.PAUSED,
+                },
+            )
         case InterviewStatus.CONSENT_REVOKED:
             return frozenset({InterviewStatus.DELETION_PENDING})
         case InterviewStatus.DELETION_PENDING | InterviewStatus.ABORTED | InterviewStatus.FINALIZED:
@@ -112,3 +123,9 @@ def can_accept_answer(status: InterviewStatus, active_consent: bool) -> bool:
     if not active_consent:
         return False
     return status == InterviewStatus.INTAKE_IN_PROGRESS
+
+
+def can_accept_evidence(status: InterviewStatus, active_consent: bool) -> bool:
+    if not active_consent:
+        return False
+    return status == InterviewStatus.NEEDS_EVIDENCE

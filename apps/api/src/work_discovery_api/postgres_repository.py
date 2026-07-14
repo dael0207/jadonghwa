@@ -10,17 +10,21 @@ from psycopg.types.json import Jsonb
 
 from work_discovery_api import postgres_sql as sql
 from work_discovery_api.domain import (
+    AnswerStatus,
     AuditAction,
     ConsentRequiredError,
     InterviewStatus,
     can_accept_answer,
+    can_accept_evidence,
     transition,
 )
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
+    AnswerRevisionCreate,
     AuditEventRead,
     ConsentRequest,
+    EvidenceCreate,
     InterviewRead,
     JsonObject,
     ProjectRead,
@@ -29,7 +33,9 @@ from work_discovery_api.models import (
     utc_now,
 )
 from work_discovery_api.postgres_ops import (
+    DbAnswerEvent,
     decline_consent,
+    insert_answer_event,
     insert_audit,
     seed_questions,
     status_after_answer,
@@ -151,23 +157,16 @@ class PostgresRepository:
             raise ConsentRequiredError(interview_id=interview_id)
         with self._connect() as conn:
             one(conn, "SELECT id FROM questions WHERE id=%s", (answer.question_id,))
-            turn_id = uuid4()
-            answer_id = uuid4()
-            sequence = int_value(one(conn, sql.NEXT_TURN, (UUID(interview_id),))["next_sequence"])
-            conn.execute(
-                sql.INSERT_TURN,
-                (turn_id, UUID(interview_id), sequence, "ANSWER"),
-            )
-            conn.execute(
-                sql.INSERT_ANSWER,
-                (
-                    answer_id,
-                    turn_id,
-                    answer.question_id,
-                    answer.text,
-                    answer.status.value,
-                    UUID(answer.revision_of) if answer.revision_of else None,
-                    Jsonb([f"turn:{turn_id}"]),
+            answer_read = insert_answer_event(
+                conn,
+                interview_id,
+                DbAnswerEvent(
+                    question_id=answer.question_id,
+                    text=answer.text,
+                    status=answer.status,
+                    revision_of=answer.revision_of,
+                    event_type="ANSWER",
+                    source_refs=(),
                 ),
             )
             status = status_after_answer(conn, current, interview_id)
@@ -183,10 +182,85 @@ class PostgresRepository:
                     "project_id": current.project_id,
                     "interview_id": interview_id,
                     "question_id": answer.question_id,
-                    "answer_id": str(answer_id),
+                    "answer_id": answer_read.id,
                 },
             )
-            return answer_from_row(one(conn, sql.ANSWER, (answer_id,)))
+            return answer_read
+
+    def record_evidence(self, interview_id: str, evidence: EvidenceCreate) -> AnswerRead:
+        current = self.get_interview(interview_id)
+        if not current.active_consent:
+            raise ConsentRequiredError(interview_id=interview_id)
+        if not can_accept_evidence(current.status, current.active_consent):
+            transition(current.status, InterviewStatus.NEEDS_EVIDENCE)
+        with self._connect() as conn:
+            question_id = evidence.question_id or str(one(conn, sql.FIRST_QUESTION_ID, ())["id"])
+            one(conn, "SELECT id FROM questions WHERE id=%s", (question_id,))
+            answer_read = insert_answer_event(
+                conn,
+                interview_id,
+                DbAnswerEvent(
+                    question_id=question_id,
+                    text=evidence.text,
+                    status=AnswerStatus.ANSWERED,
+                    revision_of=None,
+                    event_type="EVIDENCE",
+                    source_refs=("evidence",),
+                ),
+            )
+            insert_audit(
+                conn,
+                interview_id,
+                AuditAction.EVIDENCE_ADDED,
+                {
+                    "project_id": current.project_id,
+                    "interview_id": interview_id,
+                    "question_id": question_id,
+                    "answer_id": answer_read.id,
+                },
+            )
+            return answer_read
+
+    def revise_answer(
+        self,
+        interview_id: str,
+        answer_id: str,
+        revision: AnswerRevisionCreate,
+    ) -> AnswerRead:
+        current = self.get_interview(interview_id)
+        if not current.active_consent:
+            raise ConsentRequiredError(interview_id=interview_id)
+        if not can_accept_evidence(current.status, current.active_consent):
+            transition(current.status, InterviewStatus.NEEDS_EVIDENCE)
+        with self._connect() as conn:
+            original = answer_from_row(
+                one(conn, sql.ANSWER_IN_INTERVIEW, (UUID(answer_id), UUID(interview_id))),
+            )
+            answer_read = insert_answer_event(
+                conn,
+                interview_id,
+                DbAnswerEvent(
+                    question_id=original.question_id,
+                    text=revision.text,
+                    status=revision.status,
+                    revision_of=answer_id,
+                    event_type="REVISION",
+                    source_refs=(f"revision:{answer_id}",),
+                ),
+            )
+            insert_audit(
+                conn,
+                interview_id,
+                AuditAction.ANSWER_REVISED,
+                {
+                    "project_id": current.project_id,
+                    "interview_id": interview_id,
+                    "question_id": original.question_id,
+                    "answer_id": answer_read.id,
+                    "revision_of": answer_id,
+                },
+            )
+            return answer_read
 
     def list_answers(self, interview_id: str) -> tuple[AnswerRead, ...]:
         self.get_interview(interview_id)
@@ -210,6 +284,12 @@ class PostgresRepository:
 
     def get_interview_work_model(self, interview_id: str) -> WorkModelRead:
         return self.get_work_model(self.get_interview(interview_id).project_id)
+
+    def list_work_models(self, project_id: str) -> tuple[WorkModelRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.WORK_MODELS, (UUID(project_id),)).fetchall()
+            return tuple(work_model_from_row(row) for row in rows)
 
     def replace_work_model(
         self,

@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from work_discovery_api.adaptive_interview import DeterministicAdaptiveQuestionSelector
 from work_discovery_api.contracts import default_contract_paths, initial_questions, validate_payload
 from work_discovery_api.domain import (
     AuditAction,
@@ -12,6 +13,7 @@ from work_discovery_api.domain import (
     InterviewStatus,
     InvalidTransitionError,
 )
+from work_discovery_api.m3_routes import register_m3_routes
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
@@ -27,6 +29,7 @@ from work_discovery_api.models import (
     WorkModelValidateRequest,
     utc_now,
 )
+from work_discovery_api.opportunity_analyzer import DeterministicOpportunityAnalyzer
 from work_discovery_api.repository import WorkDiscoveryRepository
 from work_discovery_api.repository_factory import create_repository
 from work_discovery_api.work_model_builder import (
@@ -39,9 +42,11 @@ from work_discovery_api.work_model_builder import (
 def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     app_store = store or create_repository()
     builder = DeterministicWorkModelBuilder()
+    selector = DeterministicAdaptiveQuestionSelector()
+    analyzer = DeterministicOpportunityAnalyzer()
     app = FastAPI(
         title="Work Discovery AI API",
-        version="0.2.0",
+        version="0.3.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -154,6 +159,7 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
                 detail = f"interview must be MODEL_BUILDING, got {interview.status}"
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
             project = app_store.require_project(interview.project_id)
+            previous_versions = app_store.list_work_models(interview.project_id)
             payload = builder.build(
                 WorkModelBuildInput(
                     project=project,
@@ -170,10 +176,19 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
                 )
             model = app_store.replace_work_model(interview.project_id, payload, valid=True)
             app_store.transition_interview(interview_id, InterviewStatus.PLAYBACK_CONFIRMATION)
+            action = (
+                AuditAction.WORK_MODEL_REBUILT
+                if len(previous_versions) > 0
+                else AuditAction.WORK_MODEL_BUILT
+            )
             app_store.record_audit(
                 interview_id,
-                AuditAction.WORK_MODEL_BUILT,
-                {"project_id": interview.project_id, "interview_id": interview_id},
+                action,
+                {
+                    "project_id": interview.project_id,
+                    "interview_id": interview_id,
+                    "work_model_version": model.version,
+                },
             )
             return model
         except ConsentRequiredError as error:
@@ -264,6 +279,8 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
             schema_name="work-model-v1.schema.json",
             error=validation_error,
         )
+
+    register_m3_routes(app, app_store, paths, selector, analyzer)
 
     return app
 

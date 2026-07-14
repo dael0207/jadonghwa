@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
@@ -16,20 +16,29 @@ const requiredTables = new Set([
   "audit_events",
   "deletion_jobs",
   "question_bank_versions",
+  "opportunity_drafts",
 ]);
 
 const requiredIndexes = new Set([
   "idx_interview_sessions_project_id",
   "idx_questions_bank_position",
   "idx_audit_events_subject_id",
+  "idx_answers_revision_of",
+  "idx_turns_event_type",
+  "idx_opportunity_drafts_project_id",
 ]);
 
 const here = dirname(fileURLToPath(import.meta.url));
-const migrationPath = resolve(here, "../migrations/001_m0_foundation.sql");
-const sql = await readFile(migrationPath, "utf8");
+const migrationDir = resolve(here, "../migrations");
+const migrationFiles = (await readdir(migrationDir))
+  .filter((name) => name.endsWith(".sql"))
+  .sort();
 const db = new PGlite();
 
-await db.exec(sql);
+for (const file of migrationFiles) {
+  const sql = await readFile(resolve(migrationDir, file), "utf8");
+  await db.exec(sql);
+}
 const result = await db.query(
   "select tablename from pg_tables where schemaname = 'public'",
 );

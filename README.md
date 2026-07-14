@@ -54,13 +54,13 @@ npm install
 npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
 
 ## 저장소와 데이터베이스
 
 - 기본 실행은 `DATABASE_URL`이 없을 때 in-memory 저장소를 사용한다.
 - `DATABASE_URL=postgresql://...`을 설정하면 API가 `PostgresRepository`를 선택한다.
-- PostgreSQL을 사용할 때는 먼저 `infra/db/migrations/001_m0_foundation.sql`을 대상 DB에 적용해야 한다.
+- PostgreSQL을 사용할 때는 먼저 `infra/db/migrations/*.sql`을 파일명 순서대로 대상 DB에 적용해야 한다.
 - 로컬 개발자가 PostgreSQL 없이 검증할 수 있도록 PGlite 기반 마이그레이션 스모크가 유지된다.
 
 마이그레이션 스모크:
@@ -70,7 +70,7 @@ npm install
 npm run migration:smoke
 ```
 
-## M1/M2 검증
+## M1/M2/M3 검증
 
 ```bash
 cd apps/api
@@ -97,13 +97,19 @@ npm audit --audit-level=moderate
 
 M2의 Work Model Builder는 LLM을 호출하지 않는다. 10문항의 최신 답변을 deterministic 규칙으로 요약해 `schemas/work-model-v1.schema.json`을 통과하는 Work Model 초안을 생성한다. 이 결과는 인터뷰 답변 기반 playback 확인용 초안이며, 자동화 후보 분석이나 G1 명세 생성 결과가 아니다.
 
-M2까지 의도적으로 구현하지 않는 것:
+## M3 deterministic foundation
+
+M3는 고정 10문항 흐름을 유지하면서 reject 이후 `NEEDS_EVIDENCE` 상태에서 추가 증거와 답변 revision을 받을 수 있게 한다. `resume-model-building` 후 다시 Work Model을 생성하면 새 버전이 누적되고, 이전 답변과 수정 답변은 모두 immutable turn으로 남는다.
+
+적응형 인터뷰는 아직 LLM이 아니다. `question-bank-v1.json`을 coverage rubric과 후보 pool로 사용해 deterministic selector가 부족한 축과 다음 후보 질문을 계산한다. Opportunity draft도 실제 자동화 분석이 아니라 `schemas/opportunity-v1.schema.json`을 통과하는 deterministic mock analyzer 결과다.
+
+M3까지 의도적으로 구현하지 않는 것:
 
 - 실제 LLM 호출
 - STT 및 음성 녹음
 - 외부 업무 시스템 실행
 - 실제 자격증명 수집
-- 자동화 후보 분석
+- 실제 자동화 후보 분석
 - 실제 G1 명세 생성
 
 새 의존성:

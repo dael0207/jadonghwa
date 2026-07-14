@@ -2,7 +2,21 @@
 
 import { useState } from "react"
 
-import { api, errorMessage, type AnswerStatus, type AuditEvent, type Interview, type Project, type Question, type WorkModel } from "./api-client"
+import {
+  api,
+  errorMessage,
+  type Answer,
+  type AnswerStatus,
+  type AuditEvent,
+  type Coverage,
+  type Interview,
+  type NextQuestion,
+  type OpportunityDraft,
+  type Project,
+  type Question,
+  type WorkModel,
+} from "./api-client"
+import { AuditPanel, M3Panel, ProjectPanel, QuestionsPanel, WorkModelPanel } from "./workbench-sections"
 
 export default function Page() {
   const [projectName, setProjectName] = useState("월간 보고 업무")
@@ -11,8 +25,16 @@ export default function Page() {
   const [questions, setQuestions] = useState<readonly Question[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [statuses, setStatuses] = useState<Record<string, AnswerStatus>>({})
+  const [answerHistory, setAnswerHistory] = useState<readonly Answer[]>([])
   const [workModel, setWorkModel] = useState<WorkModel | null>(null)
+  const [workModels, setWorkModels] = useState<readonly WorkModel[]>([])
+  const [coverage, setCoverage] = useState<Coverage | null>(null)
+  const [nextQuestion, setNextQuestion] = useState<NextQuestion | null>(null)
+  const [opportunityDraft, setOpportunityDraft] = useState<OpportunityDraft | null>(null)
   const [auditEvents, setAuditEvents] = useState<readonly AuditEvent[]>([])
+  const [evidenceText, setEvidenceText] = useState("")
+  const [revisionAnswerId, setRevisionAnswerId] = useState("")
+  const [revisionText, setRevisionText] = useState("")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
@@ -26,6 +48,28 @@ export default function Page() {
     }
   }
 
+  async function refreshDerived(next: Interview) {
+    const [events, history, coverageBody, nextBody, answerList] = await Promise.all([
+      api.get(`v1/projects/${next.project_id}/audit-events`).json<AuditEvent[]>(),
+      api.get(`v1/projects/${next.project_id}/work-models`).json<WorkModel[]>(),
+      api.get(`v1/interviews/${next.id}/coverage`).json<Coverage>(),
+      api.get(`v1/interviews/${next.id}/next-question`).json<NextQuestion>(),
+      api.get(`v1/interviews/${next.id}/answers`).json<Answer[]>(),
+    ])
+    setAuditEvents(events)
+    setWorkModels(history)
+    setCoverage(coverageBody)
+    setNextQuestion(nextBody)
+    setAnswerHistory(answerList)
+  }
+
+  async function refreshInterview(interviewId: string) {
+    const next = await api.get(`v1/interviews/${interviewId}`).json<Interview>()
+    setInterview(next)
+    await refreshDerived(next)
+    return next
+  }
+
   async function createFlow() {
     await run(async () => {
       const created = await api.post("v1/projects", { json: { name: projectName } }).json<Project>()
@@ -34,8 +78,14 @@ export default function Page() {
       setProject(created)
       setInterview(session)
       setQuestions(loadedQuestions)
+      setAnswers({})
+      setStatuses({})
       setWorkModel(null)
-      setAuditEvents([])
+      setOpportunityDraft(null)
+      setEvidenceText("")
+      setRevisionText("")
+      setRevisionAnswerId("")
+      await refreshDerived(session)
       setMessage("프로젝트와 인터뷰를 만들었습니다.")
     })
   }
@@ -49,7 +99,7 @@ export default function Page() {
         })
         .json<Interview>()
       setInterview(next)
-      await refreshAudit(next.project_id)
+      await refreshDerived(next)
       setMessage("동의가 기록되었습니다.")
     })
   }
@@ -59,7 +109,7 @@ export default function Page() {
     await run(async () => {
       const next = await api.post(`v1/interviews/${interview.id}/consent/revoke`).json<Interview>()
       setInterview(next)
-      await refreshAudit(next.project_id)
+      await refreshDerived(next)
       setMessage("동의가 철회되었습니다.")
     })
   }
@@ -74,10 +124,8 @@ export default function Page() {
           status: statuses[question.id] ?? "ANSWERED",
         },
       })
-      const next = await api.get(`v1/interviews/${interview.id}`).json<Interview>()
-      setInterview(next)
-      await refreshAudit(next.project_id)
-      setMessage(`${question.position}번 답변을 저장했습니다.`)
+      const next = await refreshInterview(interview.id)
+      setMessage(`${question.position}번 답변을 저장했습니다. 현재 상태: ${next.status}`)
     })
   }
 
@@ -85,11 +133,9 @@ export default function Page() {
     if (!interview) return
     await run(async () => {
       const model = await api.post(`v1/interviews/${interview.id}/build-work-model`).json<WorkModel>()
-      const next = await api.get(`v1/interviews/${interview.id}`).json<Interview>()
       setWorkModel(model)
-      setInterview(next)
-      await refreshAudit(next.project_id)
-      setMessage("Work Model 초안을 생성했습니다.")
+      const next = await refreshInterview(interview.id)
+      setMessage(`Work Model v${model.version}을 생성했습니다. 현재 상태: ${next.status}`)
     })
   }
 
@@ -100,7 +146,7 @@ export default function Page() {
       const model = await api.get(`v1/interviews/${interview.id}/work-model`).json<WorkModel>()
       setInterview(next)
       setWorkModel(model)
-      await refreshAudit(next.project_id)
+      await refreshDerived(next)
       setMessage("Playback을 승인해 FINALIZED 상태가 되었습니다.")
     })
   }
@@ -112,119 +158,119 @@ export default function Page() {
       const model = await api.get(`v1/interviews/${interview.id}/work-model`).json<WorkModel>()
       setInterview(next)
       setWorkModel(model)
-      await refreshAudit(next.project_id)
+      await refreshDerived(next)
       setMessage("Playback을 거절해 NEEDS_EVIDENCE 상태가 되었습니다.")
     })
   }
 
-  async function refreshAudit(projectId: string) {
-    const events = await api.get(`v1/projects/${projectId}/audit-events`).json<AuditEvent[]>()
-    setAuditEvents(events)
+  async function addEvidence() {
+    if (!interview) return
+    await run(async () => {
+      await api.post(`v1/interviews/${interview.id}/evidence`, { json: { text: evidenceText } })
+      setEvidenceText("")
+      await refreshInterview(interview.id)
+      setMessage("추가 증거를 저장했습니다.")
+    })
+  }
+
+  async function reviseAnswer() {
+    if (!interview || !revisionAnswerId) return
+    await run(async () => {
+      await api.post(`v1/interviews/${interview.id}/answers/${revisionAnswerId}/revise`, {
+        json: { text: revisionText },
+      })
+      setRevisionText("")
+      setRevisionAnswerId("")
+      await refreshInterview(interview.id)
+      setMessage("수정 답변을 새 turn으로 저장했습니다.")
+    })
+  }
+
+  async function resumeModelBuilding() {
+    if (!interview) return
+    await run(async () => {
+      const next = await api.post(`v1/interviews/${interview.id}/resume-model-building`).json<Interview>()
+      setInterview(next)
+      await refreshDerived(next)
+      setMessage("MODEL_BUILDING으로 돌아갔습니다.")
+    })
+  }
+
+  async function refreshM3() {
+    if (!interview) return
+    await run(async () => {
+      await refreshDerived(interview)
+      setMessage("Coverage와 다음 질문을 새로 불러왔습니다.")
+    })
+  }
+
+  async function loadOpportunityDraft() {
+    if (!interview) return
+    await run(async () => {
+      const draft = await api
+        .get(`v1/interviews/${interview.id}/opportunities/draft`)
+        .json<OpportunityDraft>()
+      setOpportunityDraft(draft)
+      await refreshInterview(interview.id)
+      setMessage("Opportunity draft를 생성했습니다.")
+    })
   }
 
   return (
     <main className="shell">
       <header className="header">
         <h1>Work Discovery AI</h1>
-        <p>M1/M2 검증용 인터뷰 작업 화면</p>
+        <p>M3 인터뷰 작업 화면</p>
       </header>
       <div className="grid">
-        <section className="panel stack">
-          <h2>1. 프로젝트</h2>
-          <label>
-            <span className="muted">프로젝트 이름</span>
-            <input value={projectName} onChange={(event) => setProjectName(event.target.value)} />
-          </label>
-          <button onClick={createFlow}>프로젝트와 인터뷰 생성</button>
-          <Status project={project} interview={interview} />
-          <div className="cluster">
-            <button onClick={grantConsent} disabled={!interview || interview.active_consent}>
-              동의하기
-            </button>
-            <button className="danger" onClick={revokeConsent} disabled={!interview}>
-              동의 철회
-            </button>
-          </div>
-          {message ? <p className="success">{message}</p> : null}
-          {error ? <p className="error panel">{error}</p> : null}
-        </section>
-
-        <section className="panel stack">
-          <h2>2. 질문 10개</h2>
-          {questions.length === 0 ? <p className="muted">인터뷰를 생성하면 질문이 표시됩니다.</p> : null}
-          {questions.map((question) => (
-            <div className="question stack" key={question.id}>
-              <strong>
-                {question.position}. {question.text}
-              </strong>
-              <span className="muted">
-                {question.stage} · {question.dimension}
-              </span>
-              <select
-                value={statuses[question.id] ?? "ANSWERED"}
-                onChange={(event) =>
-                  setStatuses({ ...statuses, [question.id]: event.target.value as AnswerStatus })
-                }
-              >
-                <option value="ANSWERED">답변</option>
-                <option value="UNKNOWN">모름</option>
-                <option value="SKIPPED">건너뛰기</option>
-              </select>
-              <textarea
-                value={answers[question.id] ?? ""}
-                onChange={(event) => setAnswers({ ...answers, [question.id]: event.target.value })}
-              />
-              <button onClick={() => submitAnswer(question)} disabled={!interview?.active_consent}>
-                답변 저장
-              </button>
-            </div>
-          ))}
-        </section>
-
-        <section className="panel stack">
-          <h2>3. Work Model</h2>
-          <button onClick={buildWorkModel} disabled={interview?.status !== "MODEL_BUILDING"}>
-            Work Model 생성
-          </button>
-          <div className="cluster">
-            <button onClick={confirmPlayback} disabled={interview?.status !== "PLAYBACK_CONFIRMATION"}>
-              Playback 승인
-            </button>
-            <button
-              className="secondary"
-              onClick={rejectPlayback}
-              disabled={interview?.status !== "PLAYBACK_CONFIRMATION"}
-            >
-              Playback 거절
-            </button>
-          </div>
-          <pre>{workModel ? JSON.stringify(workModel.payload, null, 2) : "아직 생성된 모델이 없습니다."}</pre>
-        </section>
-
-        <section className="panel stack">
-          <h2>4. Audit events</h2>
-          {auditEvents.length === 0 ? <p className="muted">아직 표시할 감사 이벤트가 없습니다.</p> : null}
-          {auditEvents.map((event) => (
-            <p key={event.id}>
-              <span className="status">{event.action}</span> <span className="muted">{event.created_at}</span>
-            </p>
-          ))}
-        </section>
+        <ProjectPanel
+          projectName={projectName}
+          project={project}
+          interview={interview}
+          message={message}
+          error={error}
+          onProjectName={setProjectName}
+          onCreateFlow={createFlow}
+          onGrantConsent={grantConsent}
+          onRevokeConsent={revokeConsent}
+        />
+        <QuestionsPanel
+          interview={interview}
+          questions={questions}
+          answers={answers}
+          statuses={statuses}
+          onAnswer={(questionId, text) => setAnswers((current) => ({ ...current, [questionId]: text }))}
+          onStatus={(questionId, status) => setStatuses((current) => ({ ...current, [questionId]: status }))}
+          onSubmitAnswer={submitAnswer}
+        />
+        <WorkModelPanel
+          interview={interview}
+          workModel={workModel}
+          onBuildWorkModel={buildWorkModel}
+          onConfirmPlayback={confirmPlayback}
+          onRejectPlayback={rejectPlayback}
+        />
+        <M3Panel
+          interview={interview}
+          answerHistory={answerHistory}
+          evidenceText={evidenceText}
+          revisionAnswerId={revisionAnswerId}
+          revisionText={revisionText}
+          coverage={coverage}
+          nextQuestion={nextQuestion}
+          opportunityDraft={opportunityDraft}
+          workModels={workModels}
+          onEvidenceText={setEvidenceText}
+          onRevisionAnswerId={setRevisionAnswerId}
+          onRevisionText={setRevisionText}
+          onAddEvidence={addEvidence}
+          onReviseAnswer={reviseAnswer}
+          onResumeModelBuilding={resumeModelBuilding}
+          onRefreshCoverage={refreshM3}
+          onLoadOpportunity={loadOpportunityDraft}
+        />
+        <AuditPanel events={auditEvents} />
       </div>
     </main>
-  )
-}
-
-function Status({ project, interview }: { readonly project: Project | null; readonly interview: Interview | null }) {
-  return (
-    <div className="stack">
-      <p>
-        프로젝트: <strong>{project?.name ?? "없음"}</strong>
-      </p>
-      <p>
-        상태: <span className="status">{interview?.status ?? "미생성"}</span>
-      </p>
-      <p className="muted">답변 수: {interview?.answered_count ?? 0} / 10</p>
-    </div>
   )
 }

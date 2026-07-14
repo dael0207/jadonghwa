@@ -65,6 +65,12 @@ ANSWER = (
     "SELECT a.id, a.turn_id, a.question_id, a.answer_text, a.answer_status, "
     "a.revision_of, a.source_refs, a.created_at FROM answers a WHERE a.id = %s"
 )
+ANSWER_IN_INTERVIEW = (
+    "SELECT a.id, a.turn_id, a.question_id, a.answer_text, a.answer_status, "
+    "a.revision_of, a.source_refs, a.created_at FROM answers a "
+    "JOIN turns t ON t.id = a.turn_id "
+    "WHERE a.id = %s AND t.interview_id = %s"
+)
 ANSWERS = (
     "SELECT a.id, a.turn_id, a.question_id, a.answer_text, a.answer_status, "
     "a.revision_of, a.source_refs, a.created_at FROM answers a "
@@ -76,9 +82,14 @@ ANSWERED_COUNT = (
     "FROM answers a JOIN turns t ON t.id = a.turn_id WHERE t.interview_id = %s"
 )
 TOTAL_QUESTIONS = "SELECT count(*) AS total FROM questions"
+FIRST_QUESTION_ID = "SELECT id FROM questions ORDER BY position ASC LIMIT 1"
 WORK_MODEL = (
     "SELECT project_id, version, payload, schema_valid, created_at "
     "FROM work_models WHERE project_id = %s ORDER BY version DESC LIMIT 1"
+)
+WORK_MODELS = (
+    "SELECT project_id, version, payload, schema_valid, created_at "
+    "FROM work_models WHERE project_id = %s ORDER BY version ASC"
 )
 WORK_MODEL_BY_ID = (
     "SELECT project_id, version, payload, schema_valid, created_at "

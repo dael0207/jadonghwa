@@ -1,5 +1,12 @@
 # 확정 사항, 남은 결정, 바로 다음 작업
 
+## 0. 구현 진행 상태
+
+- M0: 프로젝트/인터뷰, 동의 게이트, 고정 10문항, immutable answer turn, schema validation 완료
+- M1/M2: repository 경계, PostgreSQL 선택 경로, 웹 클릭 흐름, deterministic Work Model builder, playback confirm/reject 완료
+- M3: reject 후 evidence/revision/rebuild 루프, coverage/next-question API, deterministic opportunity draft, provider interface 경계 완료
+- 다음 M4: 실제 LLM이 아닌 evaluator 수준의 reasoning 규칙을 먼저 강화하고, opportunity scoring 근거·위험·전제조건을 더 엄격하게 검증한다.
+
 ## 1. 이번 설계에서 확정한 사항
 
 ### 제품 정체성
@@ -95,7 +102,7 @@
 
 ---
 
-## 3. 바로 다음 구현 작업 — M0
+## 3. 이전 M0 구현 작업 기록
 
 1. 저장소 생성과 모듈 구조 확정
 2. ADR-001: MVP 비범위와 실제 실행 금지 기록
@@ -125,3 +132,14 @@
 - 예시 업무 모델·기회 카드가 자동 테스트를 통과한다.
 - 프로젝트 삭제 요청이 모든 파생 데이터 삭제 목록을 만든다.
 - 아직 LLM을 붙이지 않아도 고정 질문지 전체 흐름이 동작한다.
+
+---
+
+## 5. 바로 다음 구현 작업 — M4
+
+1. Opportunity analyzer를 deterministic mock에서 근거 기반 scoring engine으로 강화
+2. value, feasibility, risk, evidence confidence, oversight 점수 산식과 임계값 테스트 추가
+3. Work Model의 pain point, artifact, system, decision, exception 근거를 opportunity evidence_refs와 연결
+4. reject/rebuild 후 opportunity draft가 이전 draft와 어떻게 달라졌는지 diff 제공
+5. G1 명세 생성 전 단계의 readiness gate 정의
+6. 여전히 실제 LLM, STT, 외부 시스템 실행, 실제 G1 생성은 비범위로 유지

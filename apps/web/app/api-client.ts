@@ -31,6 +31,49 @@ export type WorkModel = {
   readonly payload: Record<string, unknown>
 }
 
+export type Answer = {
+  readonly id: string
+  readonly turn_id: string
+  readonly question_id: string
+  readonly text: string
+  readonly status: AnswerStatus
+  readonly revision_of: string | null
+  readonly source_refs: readonly string[]
+  readonly created_at: string
+}
+
+export type CoverageItem = {
+  readonly key: string
+  readonly label: string
+  readonly status: string
+  readonly evidence_count: number
+  readonly question_ids: readonly string[]
+}
+
+export type Coverage = {
+  readonly interview_id: string
+  readonly covered_count: number
+  readonly total_count: number
+  readonly items: readonly CoverageItem[]
+}
+
+export type NextQuestion = {
+  readonly interview_id: string
+  readonly complete: boolean
+  readonly coverage_key: string | null
+  readonly question_id: string | null
+  readonly text: string | null
+  readonly reason: string
+}
+
+export type OpportunityDraft = {
+  readonly project_id: string
+  readonly interview_id: string
+  readonly schema_valid: boolean
+  readonly payload: Record<string, unknown>
+  readonly created_at: string
+}
+
 export type AuditEvent = {
   readonly id: string
   readonly action: string

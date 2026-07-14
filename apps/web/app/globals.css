@@ -116,6 +116,10 @@ textarea {
   font-size: 18px;
 }
 
+.wide {
+  grid-column: 1 / -1;
+}
+
 .stack {
   display: grid;
   gap: 12px;
@@ -156,6 +160,30 @@ textarea {
   padding-top: 0;
 }
 
+.split {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.coverage-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.coverage-item {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-height: 92px;
+  margin: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 10px;
+}
+
 pre {
   max-height: 420px;
   overflow: auto;
@@ -174,6 +202,10 @@ pre {
   }
 
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .split {
     grid-template-columns: 1fr;
   }
 }

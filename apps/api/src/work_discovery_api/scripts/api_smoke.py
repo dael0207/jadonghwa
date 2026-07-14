@@ -35,16 +35,45 @@ def main() -> None:
     early_build = client.post(f"/v1/interviews/{interview_id}/build-work-model")
     assert early_build.status_code == 409
 
+    answer_ids: list[str] = []
     for index, question_id in enumerate(question_ids, start=1):
         answer = client.post(
             f"/v1/interviews/{interview_id}/answers",
             json={"question_id": question_id, "text": f"{index}번 질문에 답합니다."},
         )
         answer.raise_for_status()
+        answer_ids.append(answer.json()["id"])
 
     model = client.post(f"/v1/interviews/{interview_id}/build-work-model")
     model.raise_for_status()
     assert model.json()["schema_valid"] is True
+
+    rejected = client.post(f"/v1/interviews/{interview_id}/playback/reject")
+    rejected.raise_for_status()
+    assert rejected.json()["status"] == "NEEDS_EVIDENCE"
+
+    evidence = client.post(
+        f"/v1/interviews/{interview_id}/evidence",
+        json={"text": "누락된 증거를 추가합니다."},
+    )
+    evidence.raise_for_status()
+    revision = client.post(
+        f"/v1/interviews/{interview_id}/answers/{answer_ids[0]}/revise",
+        json={"text": "수정 답변을 새 turn으로 추가합니다."},
+    )
+    revision.raise_for_status()
+    resumed = client.post(f"/v1/interviews/{interview_id}/resume-model-building")
+    resumed.raise_for_status()
+    rebuilt = client.post(f"/v1/interviews/{interview_id}/build-work-model")
+    rebuilt.raise_for_status()
+    assert rebuilt.json()["schema_valid"] is True
+    coverage = client.get(f"/v1/interviews/{interview_id}/coverage")
+    coverage.raise_for_status()
+    next_question = client.get(f"/v1/interviews/{interview_id}/next-question")
+    next_question.raise_for_status()
+    opportunity = client.get(f"/v1/interviews/{interview_id}/opportunities/draft")
+    opportunity.raise_for_status()
+    assert opportunity.json()["schema_valid"] is True
 
     confirmed = client.post(f"/v1/interviews/{interview_id}/playback/confirm")
     confirmed.raise_for_status()
@@ -53,8 +82,9 @@ def main() -> None:
     audit = client.get(f"/v1/projects/{project_id}/audit-events")
     audit.raise_for_status()
     actions = {event["action"] for event in audit.json()}
-    assert "WORK_MODEL_BUILT" in actions
+    assert "WORK_MODEL_REBUILT" in actions
     assert "PLAYBACK_CONFIRMED" in actions
+    assert "OPPORTUNITY_DRAFT_GENERATED" in actions
     print("api smoke OK")
 
 

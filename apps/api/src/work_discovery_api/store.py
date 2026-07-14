@@ -10,13 +10,16 @@ from work_discovery_api.domain import (
     ConsentRequiredError,
     InterviewStatus,
     can_accept_answer,
+    can_accept_evidence,
     transition,
 )
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
+    AnswerRevisionCreate,
     AuditEventRead,
     ConsentRequest,
+    EvidenceCreate,
     InterviewRead,
     JsonObject,
     ProjectRead,
@@ -36,13 +39,22 @@ class InterviewRecord:
     answered_questions: set[str] = field(default_factory=set)
 
 
+@dataclass(frozen=True, slots=True)
+class AnswerEventInput:
+    question_id: str
+    text: str
+    status: AnswerStatus
+    revision_of: str | None
+    source_refs: tuple[str, ...]
+
+
 @dataclass(slots=True)
 class MemoryStore:
     projects: dict[str, ProjectRead] = field(default_factory=dict)
     interviews: dict[str, InterviewRecord] = field(default_factory=dict)
     questions: dict[str, tuple[QuestionRead, ...]] = field(default_factory=dict)
     answers: dict[str, list[AnswerRead]] = field(default_factory=dict)
-    work_models: dict[str, WorkModelRead] = field(default_factory=dict)
+    work_models: dict[str, list[WorkModelRead]] = field(default_factory=dict)
     audit_events: list[AuditEventRead] = field(default_factory=list)
 
     def create_project(self, name: str, workspace_name: str) -> ProjectRead:
@@ -138,20 +150,16 @@ class MemoryStore:
         if not can_accept_answer(record.status, record.active_consent):
             raise ConsentRequiredError(interview_id=interview_id)
         self.require_question(interview_id, answer.question_id)
-        turn_id = str(uuid4())
-        answer_id = str(uuid4())
-        created = utc_now()
-        answer_read = AnswerRead(
-            id=answer_id,
-            turn_id=turn_id,
-            question_id=answer.question_id,
-            text=answer.text,
-            status=answer.status,
-            revision_of=answer.revision_of,
-            source_refs=(f"turn:{turn_id}",),
-            created_at=created,
+        answer_read = self.append_answer(
+            interview_id,
+            AnswerEventInput(
+                question_id=answer.question_id,
+                text=answer.text,
+                status=answer.status,
+                revision_of=answer.revision_of,
+                source_refs=(),
+            ),
         )
-        self.answers[interview_id].append(answer_read)
         if answer.status in {AnswerStatus.ANSWERED, AnswerStatus.UNKNOWN, AnswerStatus.SKIPPED}:
             record.answered_questions.add(answer.question_id)
         if len(record.answered_questions) >= len(self.questions[interview_id]):
@@ -163,7 +171,72 @@ class MemoryStore:
                 "project_id": record.project_id,
                 "interview_id": interview_id,
                 "question_id": answer.question_id,
-                "answer_id": answer_id,
+                "answer_id": answer_read.id,
+            },
+        )
+        return answer_read
+
+    def record_evidence(self, interview_id: str, evidence: EvidenceCreate) -> AnswerRead:
+        record = self.require_interview(interview_id)
+        if not record.active_consent:
+            raise ConsentRequiredError(interview_id=interview_id)
+        if not can_accept_evidence(record.status, record.active_consent):
+            transition(record.status, InterviewStatus.NEEDS_EVIDENCE)
+        question_id = evidence.question_id or self.questions[interview_id][0].id
+        self.require_question(interview_id, question_id)
+        answer_read = self.append_answer(
+            interview_id,
+            AnswerEventInput(
+                question_id=question_id,
+                text=evidence.text,
+                status=AnswerStatus.ANSWERED,
+                revision_of=None,
+                source_refs=("evidence",),
+            ),
+        )
+        self.record_audit(
+            interview_id,
+            AuditAction.EVIDENCE_ADDED,
+            {
+                "project_id": record.project_id,
+                "interview_id": interview_id,
+                "question_id": question_id,
+                "answer_id": answer_read.id,
+            },
+        )
+        return answer_read
+
+    def revise_answer(
+        self,
+        interview_id: str,
+        answer_id: str,
+        revision: AnswerRevisionCreate,
+    ) -> AnswerRead:
+        record = self.require_interview(interview_id)
+        if not record.active_consent:
+            raise ConsentRequiredError(interview_id=interview_id)
+        if not can_accept_evidence(record.status, record.active_consent):
+            transition(record.status, InterviewStatus.NEEDS_EVIDENCE)
+        original = self.require_answer(interview_id, answer_id)
+        answer_read = self.append_answer(
+            interview_id,
+            AnswerEventInput(
+                question_id=original.question_id,
+                text=revision.text,
+                status=revision.status,
+                revision_of=answer_id,
+                source_refs=(f"revision:{answer_id}",),
+            ),
+        )
+        self.record_audit(
+            interview_id,
+            AuditAction.ANSWER_REVISED,
+            {
+                "project_id": record.project_id,
+                "interview_id": interview_id,
+                "question_id": original.question_id,
+                "answer_id": answer_read.id,
+                "revision_of": answer_id,
             },
         )
         return answer_read
@@ -175,21 +248,23 @@ class MemoryStore:
     def get_work_model(self, project_id: str) -> WorkModelRead:
         self.require_project(project_id)
         existing = self.work_models.get(project_id)
-        if existing is not None:
-            return existing
-        model = WorkModelRead(
+        if existing:
+            return existing[-1]
+        return WorkModelRead(
             project_id=project_id,
             version=1,
             payload={"version": "work-model-v1", "process": {}, "steps": []},
             schema_valid=False,
             created_at=utc_now(),
         )
-        self.work_models[project_id] = model
-        return model
 
     def get_interview_work_model(self, interview_id: str) -> WorkModelRead:
         record = self.require_interview(interview_id)
         return self.get_work_model(record.project_id)
+
+    def list_work_models(self, project_id: str) -> tuple[WorkModelRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.work_models.get(project_id, ()))
 
     def replace_work_model(
         self,
@@ -198,15 +273,15 @@ class MemoryStore:
         valid: bool,
     ) -> WorkModelRead:
         self.require_project(project_id)
-        previous = self.work_models.get(project_id)
+        previous = self.work_models.get(project_id, [])
         model = WorkModelRead(
             project_id=project_id,
-            version=1 if previous is None else previous.version + 1,
+            version=len(previous) + 1,
             payload=payload,
             schema_valid=valid,
             created_at=utc_now(),
         )
-        self.work_models[project_id] = model
+        self.work_models.setdefault(project_id, []).append(model)
         self.record_audit(
             project_id,
             AuditAction.WORK_MODEL_VALIDATED,
@@ -256,6 +331,25 @@ class MemoryStore:
             if event.subject_id == project_id or event.metadata.get("project_id") == project_id
         )
 
+    def append_answer(
+        self,
+        interview_id: str,
+        answer: AnswerEventInput,
+    ) -> AnswerRead:
+        turn_id = str(uuid4())
+        answer_read = AnswerRead(
+            id=str(uuid4()),
+            turn_id=turn_id,
+            question_id=answer.question_id,
+            text=answer.text,
+            status=answer.status,
+            revision_of=answer.revision_of,
+            source_refs=(f"turn:{turn_id}", *answer.source_refs),
+            created_at=utc_now(),
+        )
+        self.answers[interview_id].append(answer_read)
+        return answer_read
+
     def require_project(self, project_id: str) -> ProjectRead:
         project = self.projects.get(project_id)
         if project is None:
@@ -275,6 +369,13 @@ class MemoryStore:
             if question.id == question_id:
                 return question
         message = f"question {question_id} not found"
+        raise KeyError(message)
+
+    def require_answer(self, interview_id: str, answer_id: str) -> AnswerRead:
+        for answer in self.answers[interview_id]:
+            if answer.id == answer_id:
+                return answer
+        message = f"answer {answer_id} not found"
         raise KeyError(message)
 
     def interview_read(self, record: InterviewRecord) -> InterviewRead:

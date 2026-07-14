@@ -1,18 +1,41 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
 
 from work_discovery_api import postgres_sql as sql
-from work_discovery_api.domain import AuditAction, InterviewStatus, transition
-from work_discovery_api.models import AuditEventRead, InterviewRead, JsonObject, QuestionRead
-from work_discovery_api.postgres_rows import audit_from_row, int_value, interview_from_row, one
+from work_discovery_api.domain import AnswerStatus, AuditAction, InterviewStatus, transition
+from work_discovery_api.models import (
+    AnswerRead,
+    AuditEventRead,
+    InterviewRead,
+    JsonObject,
+    QuestionRead,
+)
+from work_discovery_api.postgres_rows import (
+    answer_from_row,
+    audit_from_row,
+    int_value,
+    interview_from_row,
+    one,
+)
 
 if TYPE_CHECKING:
     from psycopg import Connection
     from psycopg.rows import DictRow
+
+
+@dataclass(frozen=True, slots=True)
+class DbAnswerEvent:
+    question_id: str
+    text: str
+    status: AnswerStatus
+    revision_of: str | None
+    event_type: str
+    source_refs: tuple[str, ...]
 
 
 def decline_consent(
@@ -58,6 +81,33 @@ def insert_audit(
         (uuid4(), UUID(subject_id), action.value, Jsonb(metadata)),
     )
     return audit_from_row(row)
+
+
+def insert_answer_event(
+    conn: Connection[DictRow],
+    interview_id: str,
+    event: DbAnswerEvent,
+) -> AnswerRead:
+    turn_id = uuid4()
+    answer_id = uuid4()
+    sequence = int_value(one(conn, sql.NEXT_TURN, (UUID(interview_id),))["next_sequence"])
+    conn.execute(
+        sql.INSERT_TURN,
+        (turn_id, UUID(interview_id), sequence, event.event_type),
+    )
+    conn.execute(
+        sql.INSERT_ANSWER,
+        (
+            answer_id,
+            turn_id,
+            event.question_id,
+            event.text,
+            event.status.value,
+            UUID(event.revision_of) if event.revision_of else None,
+            Jsonb([f"turn:{turn_id}", *event.source_refs]),
+        ),
+    )
+    return answer_from_row(one(conn, sql.ANSWER, (answer_id,)))
 
 
 def status_after_answer(

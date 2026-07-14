@@ -73,6 +73,20 @@ class AnswerCreate(BaseModel):
     revision_of: str | None = None
 
 
+class EvidenceCreate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    text: str = Field(min_length=1)
+    question_id: str | None = None
+
+
+class AnswerRevisionCreate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    text: str = Field(min_length=1)
+    status: AnswerStatus = AnswerStatus.ANSWERED
+
+
 class AnswerRead(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -103,6 +117,46 @@ class AuditEventRead(BaseModel):
     subject_id: str
     action: AuditAction
     metadata: JsonObject
+    created_at: datetime
+
+
+class CoverageItemRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    key: str
+    label: str
+    status: str
+    evidence_count: int
+    question_ids: tuple[str, ...]
+
+
+class CoverageRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    interview_id: str
+    covered_count: int
+    total_count: int
+    items: tuple[CoverageItemRead, ...]
+
+
+class NextQuestionRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    interview_id: str
+    complete: bool
+    coverage_key: str | None
+    question_id: str | None
+    text: str | None
+    reason: str
+
+
+class OpportunityDraftRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    project_id: str
+    interview_id: str
+    schema_valid: bool
+    payload: JsonObject
     created_at: datetime
 
 
