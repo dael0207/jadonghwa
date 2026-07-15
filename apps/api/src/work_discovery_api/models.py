@@ -183,6 +183,38 @@ class DesignPackageRead(BaseModel):
     created_at: datetime
 
 
+class BlueprintRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    design_package_id: str
+    payload: JsonObject
+    schema_valid: bool
+    export_ready: bool
+    created_at: datetime
+
+
+class EvaluationRunRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    payload: JsonObject
+    schema_valid: bool
+    created_at: datetime
+
+
+class ReleaseReadinessRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    payload: JsonObject
+    schema_valid: bool
+    created_at: datetime
+
+
 class OpportunityValidateRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
 

@@ -18,14 +18,17 @@ from work_discovery_api.models import (
     AnswerRead,
     AnswerRevisionCreate,
     AuditEventRead,
+    BlueprintRead,
     ConsentRequest,
     DesignPackageRead,
+    EvaluationRunRead,
     EvidenceCreate,
     InterviewRead,
     JsonObject,
     OpportunityRead,
     ProjectRead,
     QuestionRead,
+    ReleaseReadinessRead,
     WorkModelRead,
     utc_now,
 )
@@ -59,6 +62,11 @@ class MemoryStore:
     work_models: dict[str, list[WorkModelRead]] = field(default_factory=dict)
     opportunities: dict[str, list[OpportunityRead]] = field(default_factory=dict)
     design_packages: dict[str, list[DesignPackageRead]] = field(default_factory=dict)
+    blueprints: dict[str, list[BlueprintRead]] = field(default_factory=dict)
+    evaluation_runs: dict[str, list[EvaluationRunRead]] = field(default_factory=dict)
+    release_readiness_reports: dict[str, list[ReleaseReadinessRead]] = field(
+        default_factory=dict,
+    )
     audit_events: list[AuditEventRead] = field(default_factory=list)
 
     def create_project(self, name: str, workspace_name: str) -> ProjectRead:
@@ -388,6 +396,112 @@ class MemoryStore:
             for package in self.design_packages.get(opportunity.project_id, ())
             if package.opportunity_id == opportunity_id
         )
+
+    def save_blueprint(
+        self,
+        project_id: str,
+        design_package_id: str,
+        payload: JsonObject,
+        valid: bool,
+        export_ready: bool,
+    ) -> BlueprintRead:
+        self.require_project(project_id)
+        self.get_design_package(design_package_id)
+        blueprint = BlueprintRead(
+            id=str(uuid4()),
+            project_id=project_id,
+            design_package_id=design_package_id,
+            payload=payload,
+            schema_valid=valid,
+            export_ready=export_ready,
+            created_at=utc_now(),
+        )
+        self.blueprints.setdefault(project_id, []).append(blueprint)
+        return blueprint
+
+    def get_blueprint(self, blueprint_id: str) -> BlueprintRead:
+        for blueprints in self.blueprints.values():
+            for blueprint in blueprints:
+                if blueprint.id == blueprint_id:
+                    return blueprint
+        message = f"blueprint {blueprint_id} not found"
+        raise KeyError(message)
+
+    def list_project_blueprints(self, project_id: str) -> tuple[BlueprintRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.blueprints.get(project_id, ()))
+
+    def list_design_package_blueprints(
+        self,
+        design_package_id: str,
+    ) -> tuple[BlueprintRead, ...]:
+        package = self.get_design_package(design_package_id)
+        return tuple(
+            blueprint
+            for blueprint in self.blueprints.get(package.project_id, ())
+            if blueprint.design_package_id == design_package_id
+        )
+
+    def save_evaluation_run(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> EvaluationRunRead:
+        self.require_project(project_id)
+        run = EvaluationRunRead(
+            id=str(uuid4()),
+            project_id=project_id,
+            payload=payload,
+            schema_valid=valid,
+            created_at=utc_now(),
+        )
+        self.evaluation_runs.setdefault(project_id, []).append(run)
+        return run
+
+    def get_evaluation_run(self, run_id: str) -> EvaluationRunRead:
+        for runs in self.evaluation_runs.values():
+            for run in runs:
+                if run.id == run_id:
+                    return run
+        message = f"evaluation run {run_id} not found"
+        raise KeyError(message)
+
+    def list_project_evaluation_runs(self, project_id: str) -> tuple[EvaluationRunRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.evaluation_runs.get(project_id, ()))
+
+    def save_release_readiness_report(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> ReleaseReadinessRead:
+        self.require_project(project_id)
+        report = ReleaseReadinessRead(
+            id=str(uuid4()),
+            project_id=project_id,
+            payload=payload,
+            schema_valid=valid,
+            created_at=utc_now(),
+        )
+        self.release_readiness_reports.setdefault(project_id, []).append(report)
+        return report
+
+    def get_release_readiness_report(self, report_id: str) -> ReleaseReadinessRead:
+        for reports in self.release_readiness_reports.values():
+            for report in reports:
+                if report.id == report_id:
+                    return report
+        message = f"release readiness report {report_id} not found"
+        raise KeyError(message)
+
+    def list_project_release_readiness_reports(
+        self,
+        project_id: str,
+    ) -> tuple[ReleaseReadinessRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.release_readiness_reports.get(project_id, ()))
 
     def transition_interview(
         self,

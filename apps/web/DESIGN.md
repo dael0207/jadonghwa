@@ -2,7 +2,7 @@
 
 ## 0. Research Log
 
-- Embedded refs: picked operational `taste-skill` because M1-M5 needs a dense task surface, not a marketing page.
+- Embedded refs: picked operational `taste-skill` because M1-M8 needs a dense task surface, not a marketing page.
 - Lazyweb: skipped because the scope is an internal validation UI.
 - Imagen drafts: skipped because no branded visual reference is required for M1/M2.
 
@@ -82,4 +82,4 @@ Strategy: borders-only. Panels use `--border-default`; no shadows.
 
 - Target: WCAG 2.2 AA contrast for text and controls.
 - Every action is a native button.
-- Accepted debt: none for M1-M5.
+- Accepted debt: none for M1-M8.

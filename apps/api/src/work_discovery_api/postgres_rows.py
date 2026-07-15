@@ -8,12 +8,15 @@ from work_discovery_api.domain import AnswerStatus, AuditAction, InterviewStatus
 from work_discovery_api.models import (
     AnswerRead,
     AuditEventRead,
+    BlueprintRead,
     DesignPackageRead,
+    EvaluationRunRead,
     InterviewRead,
     JsonObject,
     OpportunityRead,
     ProjectRead,
     QuestionRead,
+    ReleaseReadinessRead,
     WorkModelRead,
 )
 
@@ -104,6 +107,38 @@ def design_package_from_row(row: Row) -> DesignPackageRead:
         project_id=str(row["project_id"]),
         opportunity_id=str(row["opportunity_id"]),
         work_model_version=int_value(row["work_model_version"]),
+        payload=cast("JsonObject", row["payload"]),
+        schema_valid=bool(row["schema_valid"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def blueprint_from_row(row: Row) -> BlueprintRead:
+    return BlueprintRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        design_package_id=str(row["design_package_id"]),
+        payload=cast("JsonObject", row["payload"]),
+        schema_valid=bool(row["schema_valid"]),
+        export_ready=bool(row["export_ready"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def evaluation_run_from_row(row: Row) -> EvaluationRunRead:
+    return EvaluationRunRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        payload=cast("JsonObject", row["payload"]),
+        schema_valid=bool(row["schema_valid"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def release_readiness_from_row(row: Row) -> ReleaseReadinessRead:
+    return ReleaseReadinessRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
         payload=cast("JsonObject", row["payload"]),
         schema_valid=bool(row["schema_valid"]),
         created_at=cast("datetime", row["created_at"]),

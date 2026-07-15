@@ -1,0 +1,183 @@
+{
+  "blueprint_id": "bp-monthly-report-v1",
+  "project_id": "project-monthly-report",
+  "design_package_id": "design-package-monthly-report-v1",
+  "source_package_type": "FULL_G1",
+  "readiness_result": "READY_FOR_DESIGN",
+  "blueprint_type": "FULL_G1_BLUEPRINT",
+  "export_ready": true,
+  "executive_brief": {
+    "summary": "Monthly reporting can move from manual collection and review to a human-approved reporting workbench.",
+    "bullets": [
+      "Use the blueprint as a design handoff only.",
+      "Keep final approval with the finance operations analyst.",
+      "Do not execute ERP, email, or production workflows in M6."
+    ],
+    "evidence_refs": ["answer-001", "answer-015", "answer-017"]
+  },
+  "as_is_to_be": {
+    "as_is": [
+      "Collect ERP export and spreadsheet inputs",
+      "Check mapped rules and unresolved exceptions",
+      "Approve whether the package can proceed"
+    ],
+    "to_be": [
+      "Upload or reference prepared input evidence",
+      "Review validation findings and exception summaries",
+      "Approve final report package before downstream use"
+    ],
+    "retained_human_steps": [
+      "Approve any action that affects external systems",
+      "Keep final decision authority with the user"
+    ],
+    "evidence_refs": ["answer-015", "answer-019", "answer-021"]
+  },
+  "prd": {
+    "purpose": "Create an implementation-ready design brief for monthly report preparation.",
+    "users": ["Finance operations analyst"],
+    "scope": [
+      "Standardize required source files",
+      "Map validation rules and known exceptions",
+      "Prepare human approval checkpoints"
+    ],
+    "non_goals": [
+      "Real LLM calls",
+      "STT or voice recording",
+      "External system execution",
+      "Credential collection",
+      "Actual application code generation"
+    ],
+    "functional_requirements": [
+      "Show source inputs and validation findings",
+      "Preserve evidence references for every major requirement",
+      "Require human approval before any later pilot"
+    ],
+    "non_functional_requirements": [
+      "Keep audit logs for generated and exported artifacts",
+      "Support project deletion through a later runbook",
+      "Avoid any production system execution"
+    ],
+    "success_metrics": [
+      "Blueprint schema validation passes",
+      "Acceptance tests cover no-execution and schema validity",
+      "Reviewer can trace requirements back to source evidence"
+    ]
+  },
+  "ux_spec": {
+    "primary_flow": [
+      "Create design package",
+      "Generate blueprint preview",
+      "Validate schema",
+      "Review Markdown and JSON export preview"
+    ],
+    "screens": ["Workbench blueprint panel", "JSON preview", "Markdown preview"],
+    "states": ["No package", "Generated", "Validated", "Export-ready"],
+    "accessibility": [
+      "Use native buttons",
+      "Keep Korean labels readable on mobile",
+      "Avoid nested scrolling for previews"
+    ]
+  },
+  "data_spec": {
+    "inputs": [
+      {
+        "name": "ERP monthly export",
+        "kind": "ARTIFACT",
+        "format": "CSV",
+        "source_refs": ["answer-015"]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "Blueprint preview",
+        "kind": "DERIVED",
+        "format": "JSON",
+        "source_refs": ["answer-017"]
+      }
+    ],
+    "entities": ["Project", "DesignPackage", "Blueprint", "AuditEvent"],
+    "retention": "MVP stores append-only artifacts until deletion is requested.",
+    "audit_fields": ["subject_id", "action", "metadata", "created_at"]
+  },
+  "api_spec": {
+    "style": "REST_DRAFT",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/v1/design-packages/{package_id}/blueprint",
+        "purpose": "Create an append-only blueprint preview."
+      },
+      {
+        "method": "GET",
+        "path": "/v1/blueprints/{blueprint_id}/export/markdown",
+        "purpose": "Return Markdown export preview."
+      }
+    ],
+    "auth": "Local MVP assumes trusted local operator; real auth is out of M6 scope.",
+    "errors": ["404 for missing source", "409 for invalid source or schema gate failure"],
+    "idempotency": "Repeated generation creates a new stored blueprint row."
+  },
+  "acceptance_tests": [
+    {
+      "id": "at-blueprint-schema",
+      "scenario": "Blueprint schema validation",
+      "given": "A generated monthly report blueprint",
+      "when": "The schema validator runs",
+      "then": "The blueprint passes blueprint-v1.schema.json"
+    },
+    {
+      "id": "at-no-execution",
+      "scenario": "No external execution",
+      "given": "The blueprint is reviewed",
+      "when": "The reviewer inspects backlog, API draft, and non-goals",
+      "then": "No item requests credentials, code generation, or external execution"
+    }
+  ],
+  "implementation_backlog": [
+    {
+      "id": "backlog-review-blueprint",
+      "title": "Review blueprint",
+      "description": "Confirm scope, evidence, acceptance tests, and non-goals before G2.",
+      "priority": "MUST"
+    }
+  ],
+  "risks_and_controls": [
+    {
+      "risk": "Blueprint may be mistaken for generated code.",
+      "control": "Label all M6 exports as design preview only.",
+      "level": 2
+    }
+  ],
+  "quality_gate": {
+    "passed": true,
+    "criteria": [
+      {
+        "key": "evidence-traceability",
+        "passed": true,
+        "detail": "Evidence refs are present."
+      },
+      {
+        "key": "non-goal-enforcement",
+        "passed": true,
+        "detail": "Execution, credential, and code-generation non-goals are explicit."
+      }
+    ],
+    "blocking_items": []
+  },
+  "open_questions": ["Confirm whether G2 should remain document-only or add templates."],
+  "traceability": {
+    "source_work_model_id": "wm-monthly-report-v1",
+    "source_work_model_version": 1,
+    "opportunity_id": "opp-monthly-report-m4",
+    "design_package_id": "design-package-monthly-report-v1",
+    "evidence_refs": ["answer-001", "answer-015", "answer-017"]
+  },
+  "non_goals": [
+    "Real LLM calls",
+    "STT or voice recording",
+    "External system execution",
+    "Credential collection",
+    "Actual application code generation"
+  ],
+  "created_at": "2026-07-15T00:00:00Z"
+}

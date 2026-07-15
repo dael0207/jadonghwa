@@ -23,14 +23,17 @@ from work_discovery_api.models import (
     AnswerRead,
     AnswerRevisionCreate,
     AuditEventRead,
+    BlueprintRead,
     ConsentRequest,
     DesignPackageRead,
+    EvaluationRunRead,
     EvidenceCreate,
     InterviewRead,
     JsonObject,
     OpportunityRead,
     ProjectRead,
     QuestionRead,
+    ReleaseReadinessRead,
     WorkModelRead,
     utc_now,
 )
@@ -45,13 +48,16 @@ from work_discovery_api.postgres_ops import (
 from work_discovery_api.postgres_rows import (
     answer_from_row,
     audit_from_row,
+    blueprint_from_row,
     design_package_from_row,
+    evaluation_run_from_row,
     int_value,
     interview_from_row,
     one,
     opportunity_from_row,
     project_from_row,
     question_from_row,
+    release_readiness_from_row,
     work_model_from_row,
 )
 
@@ -408,6 +414,106 @@ class PostgresRepository:
                 (UUID(opportunity_id),),
             ).fetchall()
             return tuple(design_package_from_row(row) for row in rows)
+
+    def save_blueprint(
+        self,
+        project_id: str,
+        design_package_id: str,
+        payload: JsonObject,
+        valid: bool,
+        export_ready: bool,
+    ) -> BlueprintRead:
+        self.require_project(project_id)
+        self.get_design_package(design_package_id)
+        blueprint_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_BLUEPRINT,
+                (
+                    blueprint_id,
+                    UUID(project_id),
+                    UUID(design_package_id),
+                    Jsonb(payload),
+                    valid,
+                    export_ready,
+                ),
+            )
+            return blueprint_from_row(one(conn, sql.BLUEPRINT, (blueprint_id,)))
+
+    def get_blueprint(self, blueprint_id: str) -> BlueprintRead:
+        with self._connect() as conn:
+            return blueprint_from_row(one(conn, sql.BLUEPRINT, (UUID(blueprint_id),)))
+
+    def list_project_blueprints(self, project_id: str) -> tuple[BlueprintRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.BLUEPRINTS_BY_PROJECT, (UUID(project_id),)).fetchall()
+            return tuple(blueprint_from_row(row) for row in rows)
+
+    def list_design_package_blueprints(
+        self,
+        design_package_id: str,
+    ) -> tuple[BlueprintRead, ...]:
+        self.get_design_package(design_package_id)
+        with self._connect() as conn:
+            rows = conn.execute(
+                sql.BLUEPRINTS_BY_DESIGN_PACKAGE,
+                (UUID(design_package_id),),
+            ).fetchall()
+            return tuple(blueprint_from_row(row) for row in rows)
+
+    def save_evaluation_run(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> EvaluationRunRead:
+        self.require_project(project_id)
+        run_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_EVALUATION_RUN,
+                (run_id, UUID(project_id), Jsonb(payload), valid),
+            )
+            return evaluation_run_from_row(one(conn, sql.EVALUATION_RUN, (run_id,)))
+
+    def get_evaluation_run(self, run_id: str) -> EvaluationRunRead:
+        with self._connect() as conn:
+            return evaluation_run_from_row(one(conn, sql.EVALUATION_RUN, (UUID(run_id),)))
+
+    def list_project_evaluation_runs(self, project_id: str) -> tuple[EvaluationRunRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.EVALUATION_RUNS_BY_PROJECT, (UUID(project_id),)).fetchall()
+            return tuple(evaluation_run_from_row(row) for row in rows)
+
+    def save_release_readiness_report(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> ReleaseReadinessRead:
+        self.require_project(project_id)
+        report_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_RELEASE_READINESS,
+                (report_id, UUID(project_id), Jsonb(payload), valid),
+            )
+            return release_readiness_from_row(one(conn, sql.RELEASE_READINESS, (report_id,)))
+
+    def get_release_readiness_report(self, report_id: str) -> ReleaseReadinessRead:
+        with self._connect() as conn:
+            return release_readiness_from_row(one(conn, sql.RELEASE_READINESS, (UUID(report_id),)))
+
+    def list_project_release_readiness_reports(
+        self,
+        project_id: str,
+    ) -> tuple[ReleaseReadinessRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.RELEASE_READINESS_BY_PROJECT, (UUID(project_id),)).fetchall()
+            return tuple(release_readiness_from_row(row) for row in rows)
 
     def transition_interview(self, interview_id: str, target: InterviewStatus) -> InterviewRead:
         current = self.get_interview(interview_id)

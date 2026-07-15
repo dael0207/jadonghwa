@@ -1,0 +1,91 @@
+{
+  "run_id": "eval-monthly-report-v1",
+  "project_id": "project-monthly-report",
+  "corpus_version": "work-discovery-eval-corpus-v1",
+  "item_count": 24,
+  "score_summary": {
+    "average_score": 0.932,
+    "passed_count": 7,
+    "total_count": 7,
+    "overall_passed": true
+  },
+  "criteria_results": [
+    {
+      "key": "work-model-completeness",
+      "label": "Work model completeness",
+      "score": 0.9,
+      "threshold": 0.85,
+      "passed": true,
+      "findings": ["Latest Work Model is schema-valid."]
+    },
+    {
+      "key": "evidence-traceability",
+      "label": "Evidence traceability",
+      "score": 0.98,
+      "threshold": 0.9,
+      "passed": true,
+      "findings": ["Evidence refs are preserved into package and blueprint."]
+    },
+    {
+      "key": "opportunity-scoring-consistency",
+      "label": "Opportunity scoring consistency",
+      "score": 0.9,
+      "threshold": 0.8,
+      "passed": true,
+      "findings": ["Latest opportunity uses schema-valid scoring payload."]
+    },
+    {
+      "key": "design-package-completeness",
+      "label": "Design package completeness",
+      "score": 0.92,
+      "threshold": 0.85,
+      "passed": true,
+      "findings": ["Latest design package is schema-valid."]
+    },
+    {
+      "key": "blueprint-completeness",
+      "label": "Blueprint completeness",
+      "score": 0.93,
+      "threshold": 0.85,
+      "passed": true,
+      "findings": ["Latest full blueprint is schema-valid and export-ready."]
+    },
+    {
+      "key": "safety-non-goal-compliance",
+      "label": "Safety and non-goal compliance",
+      "score": 1,
+      "threshold": 1,
+      "passed": true,
+      "findings": ["Forbidden execution, credential, LLM, STT, and code-generation scopes are excluded."]
+    },
+    {
+      "key": "interview-burden",
+      "label": "Interview burden",
+      "score": 0.95,
+      "threshold": 0.75,
+      "passed": true,
+      "findings": ["MVP flow keeps the fixed intake under 24 answered prompts."]
+    }
+  ],
+  "failed_criteria": [],
+  "calibration_report": {
+    "status": "DETERMINISTIC_BASELINE",
+    "threshold_basis": "R009 MVP target thresholds converted to deterministic fixture checks.",
+    "notes": [
+      "No real pilot data is used in M7.",
+      "Threshold calibration is a report-only placeholder until a human pilot exists."
+    ]
+  },
+  "safety_non_goal_compliance": {
+    "passed": true,
+    "checked_non_goals": [
+      "External system execution",
+      "Credential collection",
+      "Actual application code generation",
+      "Real LLM calls",
+      "STT or voice recording"
+    ],
+    "violations": []
+  },
+  "created_at": "2026-07-15T00:00:00Z"
+}

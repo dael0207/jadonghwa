@@ -4,8 +4,10 @@ import type {
   Answer,
   AnswerStatus,
   AuditEvent,
+  Blueprint,
   Coverage,
   DesignPackage,
+  EvaluationRun,
   Interview,
   NextQuestion,
   Opportunity,
@@ -14,6 +16,7 @@ import type {
   Project,
   Question,
   Readiness,
+  ReleaseReadinessReport,
   ValidationResult,
   WorkModel,
 } from "./api-client"
@@ -429,10 +432,190 @@ export function M5Panel(props: M5PanelProps) {
   )
 }
 
+type M6PanelProps = {
+  readonly project: Project | null
+  readonly latestDesignPackage: DesignPackage | null
+  readonly blueprints: readonly Blueprint[]
+  readonly latestBlueprint: Blueprint | null
+  readonly validation: ValidationResult | null
+  readonly markdown: string
+  readonly onCreate: () => void
+  readonly onValidate: () => void
+  readonly onMarkdown: () => void
+}
+
+export function M6Panel(props: M6PanelProps) {
+  const quality = qualityCriteriaFrom(props.latestBlueprint)
+  return (
+    <section className="panel stack wide">
+      <h2>7. M6 Blueprint</h2>
+      <div className="cluster">
+        <button onClick={props.onCreate} disabled={!props.project || !props.latestDesignPackage}>
+          Blueprint 생성
+        </button>
+        <button onClick={props.onValidate} disabled={!props.latestBlueprint}>
+          Blueprint 검증
+        </button>
+        <button onClick={props.onMarkdown} disabled={!props.latestBlueprint}>
+          Markdown 미리보기
+        </button>
+      </div>
+      <div className="metric-grid">
+        <Metric label="Blueprint type" value={payloadString(props.latestBlueprint, "blueprint_type")} />
+        <Metric label="Export ready" value={props.latestBlueprint?.export_ready ? "READY" : "NOT READY"} />
+        <Metric label="Blueprints" value={String(props.blueprints.length)} />
+        <Metric label="Schema" value={props.latestBlueprint?.schema_valid ? "valid" : "not generated"} />
+      </div>
+      <ValidationMessage validation={props.validation} />
+      <div className="split equal">
+        <div className="stack list-block">
+          <strong>Blueprint list</strong>
+          {props.blueprints.length === 0 ? <p className="muted">생성된 blueprint가 없습니다.</p> : null}
+          {props.blueprints.map((item) => (
+            <p className="list-row" key={item.id}>
+              <span className="status">{payloadString(item, "blueprint_type")}</span>
+              <span>{item.id.slice(0, 8)}</span>
+              <span>{item.export_ready ? "export ready" : "limited"}</span>
+            </p>
+          ))}
+        </div>
+        <div className="stack list-block">
+          <strong>Quality gate</strong>
+          {quality.length === 0 ? <p className="muted">Blueprint 생성 후 표시됩니다.</p> : null}
+          {quality.map((item) => (
+            <p className="list-row" key={item.key}>
+              <span className={item.passed ? "success" : "error"}>{item.passed ? "PASS" : "BLOCKED"}</span>
+              <span>{item.key}</span>
+              <span className="muted">{item.detail}</span>
+            </p>
+          ))}
+        </div>
+      </div>
+      <div className="split equal">
+        <pre>
+          {props.latestBlueprint
+            ? JSON.stringify(props.latestBlueprint.payload, null, 2)
+            : "생성된 blueprint가 없습니다."}
+        </pre>
+        <pre>{props.markdown || "Markdown export preview는 버튼을 누르면 표시됩니다."}</pre>
+      </div>
+    </section>
+  )
+}
+
+type M7PanelProps = {
+  readonly project: Project | null
+  readonly evaluationRuns: readonly EvaluationRun[]
+  readonly latestEvaluationRun: EvaluationRun | null
+  readonly validation: ValidationResult | null
+  readonly onCreate: () => void
+  readonly onValidate: () => void
+}
+
+export function M7Panel(props: M7PanelProps) {
+  const summary = recordValue(props.latestEvaluationRun?.payload["score_summary"])
+  const criteria = criteriaFrom(props.latestEvaluationRun)
+  const failed = stringArray(props.latestEvaluationRun?.payload["failed_criteria"])
+  return (
+    <section className="panel stack wide">
+      <h2>8. M7 Evaluation</h2>
+      <div className="cluster">
+        <button onClick={props.onCreate} disabled={!props.project}>
+          Evaluation run 생성
+        </button>
+        <button onClick={props.onValidate} disabled={!props.latestEvaluationRun}>
+          Evaluation 검증
+        </button>
+      </div>
+      <div className="metric-grid">
+        <Metric label="Average" value={stringFrom(summary["average_score"], "미생성")} />
+        <Metric label="Passed" value={`${stringFrom(summary["passed_count"], "0")} / ${stringFrom(summary["total_count"], "0")}`} />
+        <Metric label="Corpus" value={stringFrom(props.latestEvaluationRun?.payload["item_count"], "0")} />
+        <Metric label="Runs" value={String(props.evaluationRuns.length)} />
+      </div>
+      <ValidationMessage validation={props.validation} />
+      <div className="split equal">
+        <div className="stack list-block">
+          <strong>Criteria</strong>
+          {criteria.length === 0 ? <p className="muted">Evaluation run 생성 후 표시됩니다.</p> : null}
+          {criteria.map((item) => (
+            <p className="list-row" key={item.key}>
+              <span className={item.passed ? "success" : "error"}>{item.passed ? "PASS" : "FAIL"}</span>
+              <span>{item.label}</span>
+              <span className="muted">
+                {item.score} / {item.threshold}
+              </span>
+            </p>
+          ))}
+        </div>
+        <ListBlock title="Failed criteria" items={failed} />
+      </div>
+      <pre>
+        {props.latestEvaluationRun
+          ? JSON.stringify(props.latestEvaluationRun.payload, null, 2)
+          : "생성된 evaluation run이 없습니다."}
+      </pre>
+    </section>
+  )
+}
+
+type M8PanelProps = {
+  readonly project: Project | null
+  readonly reports: readonly ReleaseReadinessReport[]
+  readonly latestReport: ReleaseReadinessReport | null
+  readonly validation: ValidationResult | null
+  readonly onCreate: () => void
+  readonly onValidate: () => void
+}
+
+export function M8Panel(props: M8PanelProps) {
+  const checklist = checklistFrom(props.latestReport)
+  const blockers = stringArray(props.latestReport?.payload["blocking_items"])
+  return (
+    <section className="panel stack wide">
+      <h2>9. M8 Release readiness</h2>
+      <div className="cluster">
+        <button onClick={props.onCreate} disabled={!props.project}>
+          Readiness report 생성
+        </button>
+        <button onClick={props.onValidate} disabled={!props.latestReport}>
+          Readiness 검증
+        </button>
+      </div>
+      <div className="metric-grid">
+        <Metric label="Status" value={payloadString(props.latestReport, "readiness_status")} />
+        <Metric label="Reports" value={String(props.reports.length)} />
+        <Metric label="Blockers" value={String(blockers.length)} />
+        <Metric label="Schema" value={props.latestReport?.schema_valid ? "valid" : "not generated"} />
+      </div>
+      <ValidationMessage validation={props.validation} />
+      <div className="split equal">
+        <div className="stack list-block">
+          <strong>Checklist</strong>
+          {checklist.length === 0 ? <p className="muted">리포트 생성 후 표시됩니다.</p> : null}
+          {checklist.map((item) => (
+            <p className="list-row" key={item.key}>
+              <span className={item.status === "PASS" ? "success" : "error"}>{item.status}</span>
+              <span>{item.label}</span>
+              <span className="muted">{item.details}</span>
+            </p>
+          ))}
+        </div>
+        <ListBlock title="Blocking items" items={blockers} />
+      </div>
+      <pre>
+        {props.latestReport
+          ? JSON.stringify(props.latestReport.payload, null, 2)
+          : "생성된 readiness report가 없습니다."}
+      </pre>
+    </section>
+  )
+}
+
 export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] }) {
   return (
     <section className="panel stack">
-      <h2>7. Audit events</h2>
+      <h2>10. Audit events</h2>
       {events.length === 0 ? <p className="muted">아직 표시할 감사 이벤트가 없습니다.</p> : null}
       {events.map((event) => (
         <p key={event.id}>
@@ -440,6 +623,26 @@ export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] 
         </p>
       ))}
     </section>
+  )
+}
+
+function Metric({ label, value }: { readonly label: string; readonly value: string }) {
+  return (
+    <p className="metric">
+      <strong>{label}</strong>
+      <span className="status">{value}</span>
+    </p>
+  )
+}
+
+function ValidationMessage({ validation }: { readonly validation: ValidationResult | null }) {
+  if (!validation) {
+    return null
+  }
+  return (
+    <p className={validation.valid ? "success" : "error"}>
+      {validation.valid ? `${validation.schema_name} 통과` : (validation.error ?? "검증 실패")}
+    </p>
   )
 }
 
@@ -485,11 +688,91 @@ function packageString(packageItem: DesignPackage | null, key: string): string {
   return "미생성"
 }
 
+function payloadString(
+  item: Blueprint | ReleaseReadinessReport | null,
+  key: string,
+): string {
+  return stringFrom(item?.payload[key], "미생성")
+}
+
+type QualityCriterion = {
+  readonly key: string
+  readonly passed: boolean
+  readonly detail: string
+}
+
+function qualityCriteriaFrom(blueprint: Blueprint | null): QualityCriterion[] {
+  const gate = recordValue(blueprint?.payload["quality_gate"])
+  return recordArray(gate["criteria"]).map((item, index) => ({
+    key: stringField(item, "key", `criterion-${index + 1}`),
+    passed: item["passed"] === true,
+    detail: stringField(item, "detail", "상세 없음"),
+  }))
+}
+
+type EvaluationCriterion = {
+  readonly key: string
+  readonly label: string
+  readonly score: string
+  readonly threshold: string
+  readonly passed: boolean
+}
+
+function criteriaFrom(run: EvaluationRun | null): EvaluationCriterion[] {
+  return recordArray(run?.payload["criteria_results"]).map((item, index) => ({
+    key: stringField(item, "key", `criterion-${index + 1}`),
+    label: stringField(item, "label", `Criterion ${index + 1}`),
+    score: stringFrom(item["score"], "0"),
+    threshold: stringFrom(item["threshold"], "0"),
+    passed: item["passed"] === true,
+  }))
+}
+
+type ReadinessChecklist = {
+  readonly key: string
+  readonly label: string
+  readonly status: string
+  readonly details: string
+}
+
+function checklistFrom(report: ReleaseReadinessReport | null): ReadinessChecklist[] {
+  return recordArray(report?.payload["checklist"]).map((item, index) => ({
+    key: stringField(item, "key", `check-${index + 1}`),
+    label: stringField(item, "label", `Check ${index + 1}`),
+    status: stringField(item, "status", "BLOCKED"),
+    details: stringField(item, "details", "상세 없음"),
+  }))
+}
+
 function recordValue(value: unknown): Record<string, unknown> {
   if (isRecord(value)) {
     return value
   }
   return {}
+}
+
+function recordArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.filter(isRecord)
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.filter((item): item is string => typeof item === "string" && item.length > 0)
+}
+
+function stringFrom(value: unknown, fallback: string): string {
+  if (typeof value === "string" && value.length > 0) {
+    return value
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value)
+  }
+  return fallback
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

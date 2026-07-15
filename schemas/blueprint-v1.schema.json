@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/blueprint-v1.schema.json",
+  "title": "Work Discovery AI G1 Solution Blueprint v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "blueprint_id",
+    "project_id",
+    "design_package_id",
+    "source_package_type",
+    "readiness_result",
+    "blueprint_type",
+    "export_ready",
+    "executive_brief",
+    "as_is_to_be",
+    "prd",
+    "ux_spec",
+    "data_spec",
+    "api_spec",
+    "acceptance_tests",
+    "implementation_backlog",
+    "risks_and_controls",
+    "quality_gate",
+    "open_questions",
+    "traceability",
+    "non_goals",
+    "created_at"
+  ],
+  "properties": {
+    "blueprint_id": { "$ref": "#/$defs/id" },
+    "project_id": { "$ref": "#/$defs/id" },
+    "design_package_id": { "$ref": "#/$defs/id" },
+    "source_package_type": { "type": "string", "enum": ["FULL_G1", "ENABLEMENT_PREP"] },
+    "readiness_result": { "type": "string", "enum": ["READY_FOR_DESIGN", "ENABLE_FIRST"] },
+    "blueprint_type": {
+      "type": "string",
+      "enum": ["FULL_G1_BLUEPRINT", "ENABLEMENT_FOLLOWUP"]
+    },
+    "export_ready": { "type": "boolean" },
+    "executive_brief": { "$ref": "#/$defs/section" },
+    "as_is_to_be": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["as_is", "to_be", "retained_human_steps", "evidence_refs"],
+      "properties": {
+        "as_is": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+        "to_be": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+        "retained_human_steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/statement" }
+        },
+        "evidence_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "prd": { "$ref": "#/$defs/prd" },
+    "ux_spec": { "$ref": "#/$defs/uxSpec" },
+    "data_spec": { "$ref": "#/$defs/dataSpec" },
+    "api_spec": { "$ref": "#/$defs/apiSpec" },
+    "acceptance_tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/acceptanceTest" }
+    },
+    "implementation_backlog": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/backlogItem" }
+    },
+    "risks_and_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/riskControl" }
+    },
+    "quality_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "criteria", "blocking_items"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/gateCriterion" }
+        },
+        "blocking_items": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "traceability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_work_model_id",
+        "source_work_model_version",
+        "opportunity_id",
+        "design_package_id",
+        "evidence_refs"
+      ],
+      "properties": {
+        "source_work_model_id": { "$ref": "#/$defs/id" },
+        "source_work_model_version": { "type": "integer", "minimum": 1 },
+        "opportunity_id": { "$ref": "#/$defs/id" },
+        "design_package_id": { "$ref": "#/$defs/id" },
+        "evidence_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "non_goals": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "idArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true
+    },
+    "statement": { "type": "string", "minLength": 1, "maxLength": 3000 },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "bullets", "evidence_refs"],
+      "properties": {
+        "summary": { "$ref": "#/$defs/statement" },
+        "bullets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/statement" }
+        },
+        "evidence_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "prd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "users",
+        "scope",
+        "non_goals",
+        "functional_requirements",
+        "non_functional_requirements",
+        "success_metrics"
+      ],
+      "properties": {
+        "purpose": { "$ref": "#/$defs/statement" },
+        "users": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "scope": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "non_goals": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/statement" }
+        },
+        "functional_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/statement" }
+        },
+        "non_functional_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/statement" }
+        },
+        "success_metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/statement" }
+        }
+      }
+    },
+    "uxSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_flow", "screens", "states", "accessibility"],
+      "properties": {
+        "primary_flow": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "screens": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "states": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "accessibility": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } }
+      }
+    },
+    "dataSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputs", "outputs", "entities", "retention", "audit_fields"],
+      "properties": {
+        "inputs": { "type": "array", "items": { "$ref": "#/$defs/dataField" } },
+        "outputs": { "type": "array", "items": { "$ref": "#/$defs/dataField" } },
+        "entities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "retention": { "$ref": "#/$defs/statement" },
+        "audit_fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } }
+      }
+    },
+    "apiSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["style", "endpoints", "auth", "errors", "idempotency"],
+      "properties": {
+        "style": { "type": "string", "enum": ["REST_DRAFT", "NO_EXTERNAL_API"] },
+        "endpoints": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/endpoint" } },
+        "auth": { "$ref": "#/$defs/statement" },
+        "errors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/statement" } },
+        "idempotency": { "$ref": "#/$defs/statement" }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "path", "purpose"],
+      "properties": {
+        "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+        "path": { "type": "string", "minLength": 1 },
+        "purpose": { "$ref": "#/$defs/statement" }
+      }
+    },
+    "dataField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "format", "source_refs"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "format": { "type": "string", "minLength": 1 },
+        "source_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "riskControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk", "control", "level"],
+      "properties": {
+        "risk": { "$ref": "#/$defs/statement" },
+        "control": { "$ref": "#/$defs/statement" },
+        "level": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "acceptanceTest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scenario", "given", "when", "then"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "scenario": { "$ref": "#/$defs/statement" },
+        "given": { "$ref": "#/$defs/statement" },
+        "when": { "$ref": "#/$defs/statement" },
+        "then": { "$ref": "#/$defs/statement" }
+      }
+    },
+    "backlogItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "description", "priority"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "$ref": "#/$defs/statement" },
+        "priority": { "type": "string", "enum": ["MUST", "SHOULD", "COULD"] }
+      }
+    },
+    "gateCriterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "passed", "detail"],
+      "properties": {
+        "key": { "$ref": "#/$defs/id" },
+        "passed": { "type": "boolean" },
+        "detail": { "$ref": "#/$defs/statement" }
+      }
+    }
+  }
+}

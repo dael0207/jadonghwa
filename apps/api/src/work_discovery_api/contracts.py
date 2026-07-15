@@ -34,6 +34,18 @@ class ContractPaths:
     def design_package_schema(self) -> Path:
         return self.root / "schemas" / "design-package-v1.schema.json"
 
+    @property
+    def blueprint_schema(self) -> Path:
+        return self.root / "schemas" / "blueprint-v1.schema.json"
+
+    @property
+    def evaluation_run_schema(self) -> Path:
+        return self.root / "schemas" / "evaluation-run-v1.schema.json"
+
+    @property
+    def release_readiness_schema(self) -> Path:
+        return self.root / "schemas" / "release-readiness-v1.schema.json"
+
 
 def default_contract_paths() -> ContractPaths:
     return ContractPaths(root=Path(__file__).resolve().parents[4])

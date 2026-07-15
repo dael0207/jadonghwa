@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from work_discovery_api.adaptive_interview import DeterministicAdaptiveQuestionSelector
+from work_discovery_api.blueprint_builder import DeterministicBlueprintBuilder
 from work_discovery_api.contracts import default_contract_paths, initial_questions, validate_payload
 from work_discovery_api.design_package_builder import DeterministicDesignPackageBuilder
 from work_discovery_api.domain import (
@@ -14,9 +15,13 @@ from work_discovery_api.domain import (
     InterviewStatus,
     InvalidTransitionError,
 )
+from work_discovery_api.evaluation_runner import DeterministicEvaluationRunner
 from work_discovery_api.m3_routes import register_m3_routes
 from work_discovery_api.m4_routes import register_m4_routes
 from work_discovery_api.m5_routes import register_m5_routes
+from work_discovery_api.m6_routes import register_m6_routes
+from work_discovery_api.m7_routes import register_m7_routes
+from work_discovery_api.m8_routes import register_m8_routes
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
@@ -33,6 +38,7 @@ from work_discovery_api.models import (
     utc_now,
 )
 from work_discovery_api.opportunity_analyzer import DeterministicOpportunityAnalyzer
+from work_discovery_api.release_readiness import DeterministicReleaseReadinessEvaluator
 from work_discovery_api.repository import WorkDiscoveryRepository
 from work_discovery_api.repository_factory import create_repository
 from work_discovery_api.work_model_builder import (
@@ -48,9 +54,12 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     selector = DeterministicAdaptiveQuestionSelector()
     analyzer = DeterministicOpportunityAnalyzer()
     design_builder = DeterministicDesignPackageBuilder()
+    blueprint_builder = DeterministicBlueprintBuilder()
+    evaluation_runner = DeterministicEvaluationRunner()
+    release_evaluator = DeterministicReleaseReadinessEvaluator()
     app = FastAPI(
         title="Work Discovery AI API",
-        version="0.5.0",
+        version="0.8.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -287,6 +296,9 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     register_m3_routes(app, app_store, paths, selector, analyzer)
     register_m4_routes(app, app_store, paths, analyzer)
     register_m5_routes(app, app_store, paths, design_builder)
+    register_m6_routes(app, app_store, paths, blueprint_builder)
+    register_m7_routes(app, app_store, paths, evaluation_runner)
+    register_m8_routes(app, app_store, paths, release_evaluator)
 
     return app
 

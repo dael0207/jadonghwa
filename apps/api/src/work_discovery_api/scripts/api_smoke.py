@@ -151,6 +151,36 @@ def main() -> None:
     packages = client.get(f"/v1/projects/{rich_project_id}/design-packages")
     packages.raise_for_status()
     assert len(packages.json()) == 1
+    blueprint = client.post(f"/v1/design-packages/{rich_package.json()['id']}/blueprint")
+    blueprint.raise_for_status()
+    assert blueprint.json()["schema_valid"] is True
+    assert blueprint.json()["export_ready"] is True
+    blueprint_validation = client.post(
+        f"/v1/blueprints/{blueprint.json()['id']}/validate",
+    )
+    blueprint_validation.raise_for_status()
+    assert blueprint_validation.json()["valid"] is True
+    blueprint_json = client.get(f"/v1/blueprints/{blueprint.json()['id']}/export/json")
+    blueprint_json.raise_for_status()
+    blueprint_markdown = client.get(f"/v1/blueprints/{blueprint.json()['id']}/export/markdown")
+    blueprint_markdown.raise_for_status()
+    assert "G1 Solution Blueprint" in blueprint_markdown.text
+    evaluation = client.post(f"/v1/projects/{rich_project_id}/evaluation-runs")
+    evaluation.raise_for_status()
+    assert evaluation.json()["schema_valid"] is True
+    assert evaluation.json()["payload"]["item_count"] == 24
+    evaluation_validation = client.post(
+        f"/v1/evaluation-runs/{evaluation.json()['id']}/validate",
+    )
+    evaluation_validation.raise_for_status()
+    release = client.post(f"/v1/projects/{rich_project_id}/release-readiness")
+    release.raise_for_status()
+    assert release.json()["schema_valid"] is True
+    release_validation = client.post(
+        f"/v1/release-readiness/{release.json()['id']}/validate",
+    )
+    release_validation.raise_for_status()
+    assert release_validation.json()["valid"] is True
 
     print("api smoke OK")
 

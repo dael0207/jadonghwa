@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/evaluation-run-v1.schema.json",
+  "title": "Work Discovery AI Evaluation Run v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "project_id",
+    "corpus_version",
+    "item_count",
+    "score_summary",
+    "criteria_results",
+    "failed_criteria",
+    "calibration_report",
+    "safety_non_goal_compliance",
+    "created_at"
+  ],
+  "properties": {
+    "run_id": { "$ref": "#/$defs/id" },
+    "project_id": { "$ref": "#/$defs/id" },
+    "corpus_version": { "type": "string", "minLength": 1 },
+    "item_count": { "type": "integer", "minimum": 24 },
+    "score_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["average_score", "passed_count", "total_count", "overall_passed"],
+      "properties": {
+        "average_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "passed_count": { "type": "integer", "minimum": 0 },
+        "total_count": { "type": "integer", "minimum": 1 },
+        "overall_passed": { "type": "boolean" }
+      }
+    },
+    "criteria_results": {
+      "type": "array",
+      "minItems": 7,
+      "items": { "$ref": "#/$defs/criterionResult" }
+    },
+    "failed_criteria": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true
+    },
+    "calibration_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "threshold_basis", "notes"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["DETERMINISTIC_BASELINE", "PILOT_REQUIRED"]
+        },
+        "threshold_basis": { "type": "string", "minLength": 1 },
+        "notes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "safety_non_goal_compliance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "checked_non_goals", "violations"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "checked_non_goals": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "violations": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "criterionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "score", "threshold", "passed", "findings"],
+      "properties": {
+        "key": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "passed": { "type": "boolean" },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

@@ -17,6 +17,10 @@ const requiredTables = new Set([
   "deletion_jobs",
   "question_bank_versions",
   "opportunity_drafts",
+  "design_packages",
+  "blueprints",
+  "evaluation_runs",
+  "release_readiness_reports",
 ]);
 
 const requiredIndexes = new Set([
@@ -26,6 +30,11 @@ const requiredIndexes = new Set([
   "idx_answers_revision_of",
   "idx_turns_event_type",
   "idx_opportunity_drafts_project_id",
+  "idx_design_packages_project_id",
+  "idx_blueprints_project_id",
+  "idx_blueprints_design_package_id",
+  "idx_evaluation_runs_project_id",
+  "idx_release_readiness_project_id",
 ]);
 
 const here = dirname(fileURLToPath(import.meta.url));

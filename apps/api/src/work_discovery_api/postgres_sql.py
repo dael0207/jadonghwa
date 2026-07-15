@@ -145,6 +145,47 @@ DESIGN_PACKAGES_BY_OPPORTUNITY = (
     "SELECT id, project_id, opportunity_id, work_model_version, payload, schema_valid, created_at "
     "FROM design_packages WHERE opportunity_id = %s ORDER BY created_at ASC, id ASC"
 )
+INSERT_BLUEPRINT = (
+    "INSERT INTO blueprints "
+    "(id, project_id, design_package_id, payload, schema_valid, export_ready) "
+    "VALUES (%s, %s, %s, %s, %s, %s)"
+)
+BLUEPRINT = (
+    "SELECT id, project_id, design_package_id, payload, schema_valid, export_ready, created_at "
+    "FROM blueprints WHERE id = %s"
+)
+BLUEPRINTS_BY_PROJECT = (
+    "SELECT id, project_id, design_package_id, payload, schema_valid, export_ready, created_at "
+    "FROM blueprints WHERE project_id = %s ORDER BY created_at ASC, id ASC"
+)
+BLUEPRINTS_BY_DESIGN_PACKAGE = (
+    "SELECT id, project_id, design_package_id, payload, schema_valid, export_ready, created_at "
+    "FROM blueprints WHERE design_package_id = %s ORDER BY created_at ASC, id ASC"
+)
+INSERT_EVALUATION_RUN = (
+    "INSERT INTO evaluation_runs (id, project_id, payload, schema_valid) "
+    "VALUES (%s, %s, %s, %s)"
+)
+EVALUATION_RUN = (
+    "SELECT id, project_id, payload, schema_valid, created_at "
+    "FROM evaluation_runs WHERE id = %s"
+)
+EVALUATION_RUNS_BY_PROJECT = (
+    "SELECT id, project_id, payload, schema_valid, created_at "
+    "FROM evaluation_runs WHERE project_id = %s ORDER BY created_at ASC, id ASC"
+)
+INSERT_RELEASE_READINESS = (
+    "INSERT INTO release_readiness_reports (id, project_id, payload, schema_valid) "
+    "VALUES (%s, %s, %s, %s)"
+)
+RELEASE_READINESS = (
+    "SELECT id, project_id, payload, schema_valid, created_at "
+    "FROM release_readiness_reports WHERE id = %s"
+)
+RELEASE_READINESS_BY_PROJECT = (
+    "SELECT id, project_id, payload, schema_valid, created_at "
+    "FROM release_readiness_reports WHERE project_id = %s ORDER BY created_at ASC, id ASC"
+)
 INSERT_AUDIT = (
     "INSERT INTO audit_events (id, subject_id, action, metadata) "
     "VALUES (%s, %s, %s, %s) "

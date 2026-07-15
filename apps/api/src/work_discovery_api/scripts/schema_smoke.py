@@ -21,6 +21,15 @@ def main() -> None:
             paths.design_package_schema,
             paths.root / "examples" / "monthly-report-design-package.json",
         ),
+        (paths.blueprint_schema, paths.root / "examples" / "monthly-report-blueprint.json"),
+        (
+            paths.evaluation_run_schema,
+            paths.root / "examples" / "monthly-report-evaluation-run.json",
+        ),
+        (
+            paths.release_readiness_schema,
+            paths.root / "examples" / "monthly-report-release-readiness.json",
+        ),
     )
     for schema_path, example_path in pairs:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))

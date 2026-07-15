@@ -1,0 +1,84 @@
+{
+  "report_id": "rel-monthly-report-v1",
+  "project_id": "project-monthly-report",
+  "readiness_status": "READY",
+  "checklist": [
+    {
+      "key": "consent-audit-deletion-readiness",
+      "label": "Consent, audit, and deletion readiness",
+      "status": "PASS",
+      "details": "Consent and artifact audit events exist; deletion remains runbook-managed."
+    },
+    {
+      "key": "schema-validation-coverage",
+      "label": "Schema validation coverage",
+      "status": "PASS",
+      "details": "Latest package, blueprint, and evaluation run are schema-valid."
+    },
+    {
+      "key": "export-readiness",
+      "label": "Export readiness",
+      "status": "PASS",
+      "details": "A FULL_G1 blueprint is export-ready."
+    },
+    {
+      "key": "safety-non-goal-enforcement",
+      "label": "Safety non-goal enforcement",
+      "status": "PASS",
+      "details": "LLM/STT, credential collection, external execution, and code generation remain excluded."
+    },
+    {
+      "key": "monitoring-placeholder",
+      "label": "Monitoring placeholder",
+      "status": "PASS",
+      "details": "M8 defines audit event monitoring placeholders without production deployment."
+    },
+    {
+      "key": "support-deletion-runbook",
+      "label": "Support and deletion runbook",
+      "status": "PASS",
+      "details": "M8 provides support, deletion, and incident review runbook text."
+    },
+    {
+      "key": "pilot-metrics-definition",
+      "label": "Pilot metrics definition",
+      "status": "PASS",
+      "details": "M7 evaluation run defines deterministic pilot metric placeholders."
+    }
+  ],
+  "blocking_items": [],
+  "source_blueprint_ids": ["blueprint-monthly-report-row"],
+  "source_design_package_ids": ["design-package-monthly-report-row"],
+  "metrics_definition": {
+    "pilot_metrics": [
+      "User-confirmed blueprint usefulness",
+      "Developer blocking-question count",
+      "Export review completion rate"
+    ],
+    "quality_metrics": [
+      "Schema validation pass rate",
+      "Evidence traceability coverage",
+      "Acceptance test completeness"
+    ],
+    "safety_metrics": [
+      "Non-goal violation count",
+      "Credential collection attempts",
+      "External execution attempts"
+    ]
+  },
+  "runbooks": {
+    "support": "Triage user-reported artifact issues through project audit events.",
+    "deletion": "Delete project-scoped artifacts and confirm deletion through an audit event.",
+    "incident_review": "Review safety or non-goal violations before enabling any later pilot."
+  },
+  "monitoring_placeholder": {
+    "status": "PLACEHOLDER_ONLY",
+    "events": [
+      "artifact_created",
+      "artifact_validated",
+      "artifact_exported",
+      "consent_changed"
+    ]
+  },
+  "created_at": "2026-07-15T00:00:00Z"
+}

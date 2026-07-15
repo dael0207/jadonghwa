@@ -55,7 +55,7 @@ npm install
 npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, diff, M5 design package 생성/검증/JSON preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, diff, M5 design package, M6 blueprint, M7 evaluation run, M8 release readiness report 생성/검증/preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
 
 ## 저장소와 데이터베이스
 
@@ -71,7 +71,7 @@ npm install
 npm run migration:smoke
 ```
 
-## M1/M2/M3/M4/M5 검증
+## M1~M8 검증
 
 ```bash
 cd apps/api
@@ -165,12 +165,45 @@ M5 패키지는 아래 내용을 포함한다.
 
 M5에서 생성하는 것은 G1 설계 패키지 초안이다. 실제 코드 생성, 외부 업무 시스템 실행, 자격증명 수집, 실제 G1 구현은 포함하지 않는다.
 
-M6 후보 작업:
+## M6 G1 Solution Blueprint
 
-- design package export 포맷 정리
-- G1 명세 템플릿과 섹션별 품질 게이트 추가
-- READY_FOR_DESIGN 패키지의 reviewer feedback/revision 루프
-- 실제 LLM/STT 연결 전 provider boundary와 안전 정책 테스트 강화
+M6는 M5 design package를 입력으로 받아 `schemas/blueprint-v1.schema.json`을 통과하는 G1 Solution Blueprint preview를 생성한다. `READY_FOR_DESIGN` + `FULL_G1`은 export-ready full blueprint가 되고, `ENABLE_FIRST` + `ENABLEMENT_PREP`은 blocker/follow-up 중심의 limited blueprint로 남는다.
+
+추가 API:
+
+- `POST /v1/design-packages/{package_id}/blueprint`
+- `GET /v1/design-packages/{package_id}/blueprints`
+- `GET /v1/projects/{project_id}/blueprints`
+- `GET /v1/blueprints/{blueprint_id}`
+- `POST /v1/blueprints/{blueprint_id}/validate`
+- `GET /v1/blueprints/{blueprint_id}/export/json`
+- `GET /v1/blueprints/{blueprint_id}/export/markdown`
+
+## M7 Evaluation & Pilot Prep
+
+M7는 실제 파일럿을 실행하지 않는다. R009 기준을 deterministic evaluation run으로 옮겨 24개 fixture corpus, work model completeness, evidence traceability, opportunity scoring consistency, design package completeness, blueprint completeness, safety/non-goal compliance, interview burden을 평가한다.
+
+추가 API:
+
+- `POST /v1/projects/{project_id}/evaluation-runs`
+- `GET /v1/projects/{project_id}/evaluation-runs`
+- `GET /v1/evaluation-runs/{run_id}`
+- `POST /v1/evaluation-runs/{run_id}/validate`
+
+## M8 Limited Release Readiness
+
+M8는 실제 배포가 아니다. consent/audit/deletion readiness, schema validation coverage, export readiness, safety non-goal enforcement, monitoring placeholder, support/deletion runbook, pilot metrics definition을 계산해 `schemas/release-readiness-v1.schema.json` 리포트로 저장한다.
+
+추가 API:
+
+- `POST /v1/projects/{project_id}/release-readiness`
+- `GET /v1/projects/{project_id}/release-readiness`
+- `GET /v1/release-readiness/{report_id}`
+- `POST /v1/release-readiness/{report_id}/validate`
+
+M6~M8에서 생성하는 것은 G1 설계 preview와 QA/release-prep 문서다. 실제 LLM 호출, STT/음성 녹음, 외부 업무 시스템 실행, 실제 자격증명 수집, 실제 앱 코드 생성, 운영 배포는 포함하지 않는다.
+
+MVP G1 후보 작업은 여기서 완료되었고, 다음 G2 후보는 제한된 starter scaffold template 연구와 reviewer feedback/revision loop다.
 
 새 의존성:
 

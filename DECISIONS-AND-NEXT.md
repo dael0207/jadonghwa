@@ -7,7 +7,10 @@
 - M3: reject 후 evidence/revision/rebuild 루프, coverage/next-question API, deterministic opportunity draft, provider interface 경계 완료
 - M4: Work Model 근거 기반 deterministic opportunity scoring, readiness gate, opportunity diff, audit 추적, 웹 scoring 패널 완료
 - M5: readiness-gated G1 design package draft, append-only package 저장/조회, schema validation, 웹 preview/validate 패널 완료
-- 다음 M6: design package export, reviewer feedback/revision 루프, G1 package 품질 gate를 만든다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
+- M6: design package 기반 G1 Solution Blueprint preview, 품질 gate, JSON/Markdown export 완료
+- M7: deterministic evaluation run, 24개 fixture corpus, schema/audit 검증 완료
+- M8: limited release readiness report, readiness checklist, 웹 preview/validate 패널 완료
+- 다음 G2 후보: 제한된 starter scaffold template 연구, reviewer feedback/revision loop, 실제 파일럿 QA 운영 기준을 검토한다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
 
 ## 1. 이번 설계에서 확정한 사항
 
@@ -137,7 +140,7 @@
 
 ---
 
-## 5. 완료된 구현 작업 — M5
+## 5. 완료된 구현 작업 — M5~M8
 
 1. `schemas/design-package-v1.schema.json` 추가
 2. deterministic Design Package Builder 구현
@@ -147,14 +150,20 @@
 6. package 생성/목록/조회/검증 API와 audit event 추가
 7. 웹 workbench에 M5 package 생성, 목록, JSON preview, acceptance tests 요약, validate 패널 추가
 8. 실제 LLM, STT, 외부 시스템 실행, 자격증명 수집, 실제 앱 코드 생성은 비범위로 유지
+9. `schemas/blueprint-v1.schema.json`과 deterministic Blueprint Builder 추가
+10. M6 blueprint 생성/조회/검증/JSON export/Markdown export API와 audit event 추가
+11. `schemas/evaluation-run-v1.schema.json`, `examples/evaluation-corpus-v1.json` 기반 M7 deterministic evaluation runner 추가
+12. `schemas/release-readiness-v1.schema.json` 기반 M8 release readiness evaluator 추가
+13. in-memory/PostgreSQL 저장소와 migration에 append-only `blueprints`, `evaluation_runs`, `release_readiness_reports` 추가
+14. 웹 workbench에 M6/M7/M8 생성, 목록, JSON preview, validate, release status 패널 추가
 
 ---
 
-## 6. 바로 다음 구현 작업 — M6
+## 6. 바로 다음 구현 작업 — G2 후보
 
-1. Design package export 포맷 정의: JSON, Markdown, ZIP manifest
-2. Package reviewer feedback/revision API와 append-only revision history 추가
-3. G1 package 품질 gate 추가: evidence coverage, acceptance test completeness, non-goal enforcement
-4. READY_FOR_DESIGN package만 export-ready가 되도록 gate 분리
-5. 웹에서 export preview, reviewer notes, revision diff 제공
-6. 실제 LLM/STT 연결 전 provider boundary와 안전 정책 테스트 강화
+1. 제한된 starter scaffold template 범위 결정: 실제 실행 없는 파일 구조 preview인지, 다운로드 가능한 skeleton인지 구분
+2. Reviewer feedback/revision API와 append-only revision history 추가
+3. Blueprint revision diff와 acceptance-test coverage drift 표시
+4. 실제 파일럿 전에 QA runbook, deletion drill, support escalation checklist를 운영 문서로 분리
+5. LLM/STT 연결 전 provider boundary, prompt/input policy, redaction policy 테스트 강화
+6. 외부 시스템 실행과 실제 자격증명 수집은 별도 G2 이후 결정으로 유지

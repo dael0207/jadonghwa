@@ -1,0 +1,30 @@
+{
+  "corpus_id": "work-discovery-eval-corpus-v1",
+  "version": "2026-07-15",
+  "items": [
+    { "id": "eval-001", "work_type": "rule_based_repetition", "domain": "finance", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-002", "work_type": "rule_based_repetition", "domain": "sales_ops", "expert_ground_truth": "READY_FOR_DESIGN" },
+    { "id": "eval-003", "work_type": "rule_based_repetition", "domain": "hr_admin", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-004", "work_type": "rule_based_repetition", "domain": "customer_support", "expert_ground_truth": "READY_FOR_DESIGN" },
+    { "id": "eval-005", "work_type": "document_mail_work", "domain": "finance", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-006", "work_type": "document_mail_work", "domain": "sales_ops", "expert_ground_truth": "DISCOVERY_NEEDED" },
+    { "id": "eval-007", "work_type": "document_mail_work", "domain": "quality_regulatory", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-008", "work_type": "document_mail_work", "domain": "marketing_reporting", "expert_ground_truth": "READY_FOR_DESIGN" },
+    { "id": "eval-009", "work_type": "expert_judgment_heavy", "domain": "finance", "expert_ground_truth": "BLOCKED" },
+    { "id": "eval-010", "work_type": "expert_judgment_heavy", "domain": "quality_regulatory", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-011", "work_type": "expert_judgment_heavy", "domain": "customer_support", "expert_ground_truth": "DISCOVERY_NEEDED" },
+    { "id": "eval-012", "work_type": "expert_judgment_heavy", "domain": "hr_admin", "expert_ground_truth": "BLOCKED" },
+    { "id": "eval-013", "work_type": "low_frequency_low_value", "domain": "finance", "expert_ground_truth": "DISCOVERY_NEEDED" },
+    { "id": "eval-014", "work_type": "low_frequency_low_value", "domain": "sales_ops", "expert_ground_truth": "DISCOVERY_NEEDED" },
+    { "id": "eval-015", "work_type": "low_frequency_low_value", "domain": "marketing_reporting", "expert_ground_truth": "BLOCKED" },
+    { "id": "eval-016", "work_type": "low_frequency_low_value", "domain": "customer_support", "expert_ground_truth": "DISCOVERY_NEEDED" },
+    { "id": "eval-017", "work_type": "privacy_finance_regulated", "domain": "finance", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-018", "work_type": "privacy_finance_regulated", "domain": "hr_admin", "expert_ground_truth": "BLOCKED" },
+    { "id": "eval-019", "work_type": "privacy_finance_regulated", "domain": "quality_regulatory", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-020", "work_type": "privacy_finance_regulated", "domain": "customer_support", "expert_ground_truth": "BLOCKED" },
+    { "id": "eval-021", "work_type": "physical_phone_meeting_mixed", "domain": "sales_ops", "expert_ground_truth": "DISCOVERY_NEEDED" },
+    { "id": "eval-022", "work_type": "physical_phone_meeting_mixed", "domain": "hr_admin", "expert_ground_truth": "BLOCKED" },
+    { "id": "eval-023", "work_type": "physical_phone_meeting_mixed", "domain": "marketing_reporting", "expert_ground_truth": "ENABLE_FIRST" },
+    { "id": "eval-024", "work_type": "physical_phone_meeting_mixed", "domain": "quality_regulatory", "expert_ground_truth": "DISCOVERY_NEEDED" }
+  ]
+}

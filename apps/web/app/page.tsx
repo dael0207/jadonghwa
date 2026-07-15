@@ -8,8 +8,10 @@ import {
   type Answer,
   type AnswerStatus,
   type AuditEvent,
+  type Blueprint,
   type Coverage,
   type DesignPackage,
+  type EvaluationRun,
   type Interview,
   type NextQuestion,
   type Opportunity,
@@ -18,6 +20,7 @@ import {
   type Project,
   type Question,
   type Readiness,
+  type ReleaseReadinessReport,
   type ValidationResult,
   type WorkModel,
 } from "./api-client"
@@ -26,6 +29,9 @@ import {
   M3Panel,
   M4Panel,
   M5Panel,
+  M6Panel,
+  M7Panel,
+  M8Panel,
   ProjectPanel,
   QuestionsPanel,
   WorkModelPanel,
@@ -49,6 +55,16 @@ export default function Page() {
   const [designPackages, setDesignPackages] = useState<readonly DesignPackage[]>([])
   const [latestDesignPackage, setLatestDesignPackage] = useState<DesignPackage | null>(null)
   const [designPackageValidation, setDesignPackageValidation] = useState<ValidationResult | null>(null)
+  const [blueprints, setBlueprints] = useState<readonly Blueprint[]>([])
+  const [latestBlueprint, setLatestBlueprint] = useState<Blueprint | null>(null)
+  const [blueprintValidation, setBlueprintValidation] = useState<ValidationResult | null>(null)
+  const [blueprintMarkdown, setBlueprintMarkdown] = useState("")
+  const [evaluationRuns, setEvaluationRuns] = useState<readonly EvaluationRun[]>([])
+  const [latestEvaluationRun, setLatestEvaluationRun] = useState<EvaluationRun | null>(null)
+  const [evaluationValidation, setEvaluationValidation] = useState<ValidationResult | null>(null)
+  const [releaseReports, setReleaseReports] = useState<readonly ReleaseReadinessReport[]>([])
+  const [latestReleaseReport, setLatestReleaseReport] = useState<ReleaseReadinessReport | null>(null)
+  const [releaseValidation, setReleaseValidation] = useState<ValidationResult | null>(null)
   const [readiness, setReadiness] = useState<Readiness | null>(null)
   const [opportunityDiff, setOpportunityDiff] = useState<OpportunityDiff | null>(null)
   const [auditEvents, setAuditEvents] = useState<readonly AuditEvent[]>([])
@@ -69,8 +85,18 @@ export default function Page() {
   }
 
   async function refreshDerived(next: Interview) {
-    const [events, history, coverageBody, nextBody, answerList, opportunityList, packageList] =
-      await Promise.all([
+    const [
+      events,
+      history,
+      coverageBody,
+      nextBody,
+      answerList,
+      opportunityList,
+      packageList,
+      blueprintList,
+      evaluationList,
+      releaseList,
+    ] = await Promise.all([
       api.get(`v1/projects/${next.project_id}/audit-events`).json<AuditEvent[]>(),
       api.get(`v1/projects/${next.project_id}/work-models`).json<WorkModel[]>(),
       api.get(`v1/interviews/${next.id}/coverage`).json<Coverage>(),
@@ -78,6 +104,9 @@ export default function Page() {
       api.get(`v1/interviews/${next.id}/answers`).json<Answer[]>(),
       api.get(`v1/projects/${next.project_id}/opportunities`).json<Opportunity[]>(),
       api.get(`v1/projects/${next.project_id}/design-packages`).json<DesignPackage[]>(),
+      api.get(`v1/projects/${next.project_id}/blueprints`).json<Blueprint[]>(),
+      api.get(`v1/projects/${next.project_id}/evaluation-runs`).json<EvaluationRun[]>(),
+      api.get(`v1/projects/${next.project_id}/release-readiness`).json<ReleaseReadinessReport[]>(),
     ])
     setAuditEvents(events)
     setWorkModels(history)
@@ -88,6 +117,12 @@ export default function Page() {
     setLatestOpportunity(latestItem(opportunityList))
     setDesignPackages(packageList)
     setLatestDesignPackage(latestItem(packageList))
+    setBlueprints(blueprintList)
+    setLatestBlueprint(latestItem(blueprintList))
+    setEvaluationRuns(evaluationList)
+    setLatestEvaluationRun(latestItem(evaluationList))
+    setReleaseReports(releaseList)
+    setLatestReleaseReport(latestItem(releaseList))
     if (opportunityList.length === 0) {
       setReadiness(null)
       setOpportunityDiff(null)
@@ -118,6 +153,16 @@ export default function Page() {
       setDesignPackages([])
       setLatestDesignPackage(null)
       setDesignPackageValidation(null)
+      setBlueprints([])
+      setLatestBlueprint(null)
+      setBlueprintValidation(null)
+      setBlueprintMarkdown("")
+      setEvaluationRuns([])
+      setLatestEvaluationRun(null)
+      setEvaluationValidation(null)
+      setReleaseReports([])
+      setLatestReleaseReport(null)
+      setReleaseValidation(null)
       setReadiness(null)
       setOpportunityDiff(null)
       setEvidenceText("")
@@ -306,6 +351,118 @@ export default function Page() {
     })
   }
 
+  async function createBlueprint() {
+    if (!latestDesignPackage) return
+    await run(async () => {
+      const created = await api
+        .post(`v1/design-packages/${latestDesignPackage.id}/blueprint`)
+        .json<Blueprint>()
+      setLatestBlueprint(created)
+      setBlueprintValidation(null)
+      setBlueprintMarkdown("")
+      if (project) {
+        await refreshProjectM6(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(`Blueprint ${created.id.slice(0, 8)} preview를 생성했습니다.`)
+    })
+  }
+
+  async function validateBlueprint() {
+    if (!latestBlueprint) return
+    await run(async () => {
+      const validation = await api
+        .post(`v1/blueprints/${latestBlueprint.id}/validate`)
+        .json<ValidationResult>()
+      setBlueprintValidation(validation)
+      if (project) {
+        await refreshProjectM6(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(validation.valid ? "Blueprint schema 검증을 통과했습니다." : "Blueprint 검증 실패")
+    })
+  }
+
+  async function loadBlueprintMarkdown() {
+    if (!latestBlueprint) return
+    await run(async () => {
+      const markdown = await api.get(`v1/blueprints/${latestBlueprint.id}/export/markdown`).text()
+      setBlueprintMarkdown(markdown)
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage("Blueprint Markdown export preview를 불러왔습니다.")
+    })
+  }
+
+  async function createEvaluationRun() {
+    if (!project) return
+    await run(async () => {
+      const created = await api.post(`v1/projects/${project.id}/evaluation-runs`).json<EvaluationRun>()
+      setLatestEvaluationRun(created)
+      setEvaluationValidation(null)
+      await refreshProjectM7(project.id)
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(`Evaluation run ${created.id.slice(0, 8)}을 생성했습니다.`)
+    })
+  }
+
+  async function validateEvaluationRun() {
+    if (!latestEvaluationRun) return
+    await run(async () => {
+      const validation = await api
+        .post(`v1/evaluation-runs/${latestEvaluationRun.id}/validate`)
+        .json<ValidationResult>()
+      setEvaluationValidation(validation)
+      if (project) {
+        await refreshProjectM7(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(validation.valid ? "Evaluation schema 검증을 통과했습니다." : "Evaluation 검증 실패")
+    })
+  }
+
+  async function createReleaseReadiness() {
+    if (!project) return
+    await run(async () => {
+      const created = await api
+        .post(`v1/projects/${project.id}/release-readiness`)
+        .json<ReleaseReadinessReport>()
+      setLatestReleaseReport(created)
+      setReleaseValidation(null)
+      await refreshProjectM8(project.id)
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(`Release readiness ${created.id.slice(0, 8)} 리포트를 생성했습니다.`)
+    })
+  }
+
+  async function validateReleaseReadiness() {
+    if (!latestReleaseReport) return
+    await run(async () => {
+      const validation = await api
+        .post(`v1/release-readiness/${latestReleaseReport.id}/validate`)
+        .json<ValidationResult>()
+      setReleaseValidation(validation)
+      if (project) {
+        await refreshProjectM8(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(validation.valid ? "Release readiness schema 검증을 통과했습니다." : "Release 검증 실패")
+    })
+  }
+
   async function validateOpportunity() {
     if (!latestOpportunity) return
     await run(async () => {
@@ -373,11 +530,31 @@ export default function Page() {
     setLatestDesignPackage(latestItem(packageList))
   }
 
+  async function refreshProjectM6(projectId: string) {
+    const blueprintList = await api.get(`v1/projects/${projectId}/blueprints`).json<Blueprint[]>()
+    setBlueprints(blueprintList)
+    setLatestBlueprint(latestItem(blueprintList))
+  }
+
+  async function refreshProjectM7(projectId: string) {
+    const runList = await api.get(`v1/projects/${projectId}/evaluation-runs`).json<EvaluationRun[]>()
+    setEvaluationRuns(runList)
+    setLatestEvaluationRun(latestItem(runList))
+  }
+
+  async function refreshProjectM8(projectId: string) {
+    const reportList = await api
+      .get(`v1/projects/${projectId}/release-readiness`)
+      .json<ReleaseReadinessReport[]>()
+    setReleaseReports(reportList)
+    setLatestReleaseReport(latestItem(reportList))
+  }
+
   return (
     <main className="shell">
       <header className="header">
         <h1>Work Discovery AI</h1>
-        <p>M5 인터뷰, opportunity scoring, design package 작업 화면</p>
+        <p>M8 인터뷰, blueprint, evaluation, release readiness 작업 화면</p>
       </header>
       <div className="grid">
         <ProjectPanel
@@ -445,6 +622,33 @@ export default function Page() {
           validation={designPackageValidation}
           onCreate={createDesignPackage}
           onValidate={validateDesignPackage}
+        />
+        <M6Panel
+          project={project}
+          latestDesignPackage={latestDesignPackage}
+          blueprints={blueprints}
+          latestBlueprint={latestBlueprint}
+          validation={blueprintValidation}
+          markdown={blueprintMarkdown}
+          onCreate={createBlueprint}
+          onValidate={validateBlueprint}
+          onMarkdown={loadBlueprintMarkdown}
+        />
+        <M7Panel
+          project={project}
+          evaluationRuns={evaluationRuns}
+          latestEvaluationRun={latestEvaluationRun}
+          validation={evaluationValidation}
+          onCreate={createEvaluationRun}
+          onValidate={validateEvaluationRun}
+        />
+        <M8Panel
+          project={project}
+          reports={releaseReports}
+          latestReport={latestReleaseReport}
+          validation={releaseValidation}
+          onCreate={createReleaseReadiness}
+          onValidate={validateReleaseReadiness}
         />
         <AuditPanel events={auditEvents} />
       </div>

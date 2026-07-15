@@ -217,6 +217,8 @@ textarea {
   margin: 0;
   border-top: 1px solid var(--border-default);
   padding-top: 8px;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .list-row:first-of-type {

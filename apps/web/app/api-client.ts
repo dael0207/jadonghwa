@@ -93,6 +93,32 @@ export type DesignPackage = {
   readonly created_at: string
 }
 
+export type Blueprint = {
+  readonly id: string
+  readonly project_id: string
+  readonly design_package_id: string
+  readonly payload: Record<string, unknown>
+  readonly schema_valid: boolean
+  readonly export_ready: boolean
+  readonly created_at: string
+}
+
+export type EvaluationRun = {
+  readonly id: string
+  readonly project_id: string
+  readonly payload: Record<string, unknown>
+  readonly schema_valid: boolean
+  readonly created_at: string
+}
+
+export type ReleaseReadinessReport = {
+  readonly id: string
+  readonly project_id: string
+  readonly payload: Record<string, unknown>
+  readonly schema_valid: boolean
+  readonly created_at: string
+}
+
 export type Readiness = {
   readonly project_id: string
   readonly interview_id: string | null

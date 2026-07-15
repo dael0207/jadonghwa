@@ -8,14 +8,17 @@ from work_discovery_api.models import (
     AnswerRead,
     AnswerRevisionCreate,
     AuditEventRead,
+    BlueprintRead,
     ConsentRequest,
     DesignPackageRead,
+    EvaluationRunRead,
     EvidenceCreate,
     InterviewRead,
     JsonObject,
     OpportunityRead,
     ProjectRead,
     QuestionRead,
+    ReleaseReadinessRead,
     WorkModelRead,
 )
 
@@ -75,6 +78,39 @@ class WorkDiscoveryRepository(Protocol):
         self,
         opportunity_id: str,
     ) -> tuple[DesignPackageRead, ...]: ...
+    def save_blueprint(
+        self,
+        project_id: str,
+        design_package_id: str,
+        payload: JsonObject,
+        valid: bool,
+        export_ready: bool,
+    ) -> BlueprintRead: ...
+    def get_blueprint(self, blueprint_id: str) -> BlueprintRead: ...
+    def list_project_blueprints(self, project_id: str) -> tuple[BlueprintRead, ...]: ...
+    def list_design_package_blueprints(
+        self,
+        design_package_id: str,
+    ) -> tuple[BlueprintRead, ...]: ...
+    def save_evaluation_run(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> EvaluationRunRead: ...
+    def get_evaluation_run(self, run_id: str) -> EvaluationRunRead: ...
+    def list_project_evaluation_runs(self, project_id: str) -> tuple[EvaluationRunRead, ...]: ...
+    def save_release_readiness_report(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        valid: bool,
+    ) -> ReleaseReadinessRead: ...
+    def get_release_readiness_report(self, report_id: str) -> ReleaseReadinessRead: ...
+    def list_project_release_readiness_reports(
+        self,
+        project_id: str,
+    ) -> tuple[ReleaseReadinessRead, ...]: ...
     def transition_interview(
         self,
         interview_id: str,

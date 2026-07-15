@@ -17,6 +17,8 @@ tags:
   - name: Opportunities
   - name: DesignPackages
   - name: Blueprints
+  - name: EvaluationRuns
+  - name: ReleaseReadiness
   - name: Artifacts
 paths:
   /projects:
@@ -430,6 +432,254 @@ paths:
                 $ref: '#/components/schemas/SchemaValidationResult'
         '404':
           $ref: '#/components/responses/Problem'
+  /design-packages/{packageId}/blueprint:
+    parameters:
+      - $ref: '#/components/parameters/DesignPackageId'
+    post:
+      tags: [Blueprints]
+      operationId: createBlueprint
+      summary: Design package에서 G1 Solution Blueprint preview 생성
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blueprint'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /design-packages/{packageId}/blueprints:
+    parameters:
+      - $ref: '#/components/parameters/DesignPackageId'
+    get:
+      tags: [Blueprints]
+      operationId: listDesignPackageBlueprints
+      summary: design package 기준 blueprint 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blueprint'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/blueprints:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [Blueprints]
+      operationId: listProjectBlueprints
+      summary: 프로젝트 기준 blueprint 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blueprint'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /blueprints/{blueprintId}:
+    parameters:
+      - $ref: '#/components/parameters/BlueprintId'
+    get:
+      tags: [Blueprints]
+      operationId: getBlueprint
+      summary: blueprint 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blueprint'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /blueprints/{blueprintId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/BlueprintId'
+    post:
+      tags: [Blueprints]
+      operationId: validateBlueprint
+      summary: blueprint-v1 schema 검증
+      responses:
+        '200':
+          description: 검증 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaValidationResult'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /blueprints/{blueprintId}/export/json:
+    parameters:
+      - $ref: '#/components/parameters/BlueprintId'
+    get:
+      tags: [Blueprints]
+      operationId: exportBlueprintJson
+      summary: blueprint JSON export preview 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlueprintExport'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /blueprints/{blueprintId}/export/markdown:
+    parameters:
+      - $ref: '#/components/parameters/BlueprintId'
+    get:
+      tags: [Blueprints]
+      operationId: exportBlueprintMarkdown
+      summary: blueprint Markdown export preview 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/evaluation-runs:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [EvaluationRuns]
+      operationId: createEvaluationRun
+      summary: deterministic evaluation run 생성
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationRun'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+    get:
+      tags: [EvaluationRuns]
+      operationId: listProjectEvaluationRuns
+      summary: 프로젝트 기준 evaluation run 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationRun'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /evaluation-runs/{evaluationRunId}:
+    parameters:
+      - $ref: '#/components/parameters/EvaluationRunId'
+    get:
+      tags: [EvaluationRuns]
+      operationId: getEvaluationRun
+      summary: evaluation run 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationRun'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /evaluation-runs/{evaluationRunId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/EvaluationRunId'
+    post:
+      tags: [EvaluationRuns]
+      operationId: validateEvaluationRun
+      summary: evaluation-run-v1 schema 검증
+      responses:
+        '200':
+          description: 검증 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaValidationResult'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/release-readiness:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [ReleaseReadiness]
+      operationId: createReleaseReadiness
+      summary: limited release readiness report 생성
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseReadinessReport'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+    get:
+      tags: [ReleaseReadiness]
+      operationId: listProjectReleaseReadinessReports
+      summary: 프로젝트 기준 release readiness report 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseReadinessReport'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /release-readiness/{releaseReadinessId}:
+    parameters:
+      - $ref: '#/components/parameters/ReleaseReadinessId'
+    get:
+      tags: [ReleaseReadiness]
+      operationId: getReleaseReadiness
+      summary: release readiness report 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseReadinessReport'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /release-readiness/{releaseReadinessId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/ReleaseReadinessId'
+    post:
+      tags: [ReleaseReadiness]
+      operationId: validateReleaseReadiness
+      summary: release-readiness-v1 schema 검증
+      responses:
+        '200':
+          description: 검증 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaValidationResult'
+        '404':
+          $ref: '#/components/responses/Problem'
   /opportunities/{opportunityId}/select:
     parameters:
       - $ref: '#/components/parameters/OpportunityId'
@@ -463,35 +713,6 @@ paths:
                     type: string
                   selected:
                     type: boolean
-        '409':
-          $ref: '#/components/responses/Problem'
-  /opportunities/{opportunityId}/blueprint:
-    parameters:
-      - $ref: '#/components/parameters/OpportunityId'
-    post:
-      tags: [Blueprints]
-      operationId: generateBlueprint
-      summary: G1 솔루션 패키지 생성
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                output_language:
-                  type: string
-                  default: ko-KR
-                include_openapi_stub:
-                  type: boolean
-                  default: true
-      responses:
-        '202':
-          description: 생성 접수
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcessingJob'
         '409':
           $ref: '#/components/responses/Problem'
   /projects/{projectId}/export:
@@ -570,6 +791,24 @@ components:
         type: string
     DesignPackageId:
       name: packageId
+      in: path
+      required: true
+      schema:
+        type: string
+    BlueprintId:
+      name: blueprintId
+      in: path
+      required: true
+      schema:
+        type: string
+    EvaluationRunId:
+      name: evaluationRunId
+      in: path
+      required: true
+      schema:
+        type: string
+    ReleaseReadinessId:
+      name: releaseReadinessId
       in: path
       required: true
       schema:
@@ -847,6 +1086,96 @@ components:
           type: object
           additionalProperties: true
           description: design-package-v1.schema.json에 의해 검증되는 객체
+        schema_valid:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    Blueprint:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - project_id
+        - design_package_id
+        - payload
+        - schema_valid
+        - export_ready
+        - created_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        design_package_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+          description: blueprint-v1.schema.json에 의해 검증되는 객체
+        schema_valid:
+          type: boolean
+        export_ready:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    BlueprintExport:
+      type: object
+      additionalProperties: true
+      required: [export_format, blueprint_id, project_id, payload]
+      properties:
+        export_format:
+          type: string
+          enum: [json]
+        blueprint_id:
+          type: string
+        project_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+    EvaluationRun:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - project_id
+        - payload
+        - schema_valid
+        - created_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+          description: evaluation-run-v1.schema.json에 의해 검증되는 객체
+        schema_valid:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    ReleaseReadinessReport:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - project_id
+        - payload
+        - schema_valid
+        - created_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+          description: release-readiness-v1.schema.json에 의해 검증되는 객체
         schema_valid:
           type: boolean
         created_at:
