@@ -7,9 +7,12 @@ import type {
   Coverage,
   Interview,
   NextQuestion,
+  Opportunity,
+  OpportunityDiff,
   OpportunityDraft,
   Project,
   Question,
+  Readiness,
   WorkModel,
 } from "./api-client"
 
@@ -233,10 +236,102 @@ export function M3Panel(props: M3PanelProps) {
   )
 }
 
+type M4PanelProps = {
+  readonly project: Project | null
+  readonly opportunities: readonly Opportunity[]
+  readonly latestOpportunity: Opportunity | null
+  readonly readiness: Readiness | null
+  readonly opportunityDiff: OpportunityDiff | null
+  readonly onAnalyze: () => void
+  readonly onValidate: () => void
+  readonly onReadiness: () => void
+  readonly onDiff: () => void
+}
+
+export function M4Panel(props: M4PanelProps) {
+  const canUseProject = Boolean(props.project)
+  const scoreEntries = Object.entries(props.readiness?.score_summary ?? {})
+  return (
+    <section className="panel stack wide">
+      <h2>5. M4 Opportunity scoring</h2>
+      <div className="cluster">
+        <button onClick={props.onAnalyze} disabled={!canUseProject}>
+          Opportunity 분석
+        </button>
+        <button onClick={props.onReadiness} disabled={!canUseProject || !props.latestOpportunity}>
+          Readiness 확인
+        </button>
+        <button onClick={props.onValidate} disabled={!props.latestOpportunity}>
+          Opportunity 검증
+        </button>
+        <button onClick={props.onDiff} disabled={!canUseProject || props.opportunities.length < 2}>
+          이전 분석과 Diff
+        </button>
+      </div>
+      <div className="metric-grid">
+        <p className="metric">
+          <strong>Gate</strong>
+          <span className="status">{props.readiness?.result ?? "미분석"}</span>
+        </p>
+        <p className="metric">
+          <strong>G1 readiness</strong>
+          <span className="status">{props.readiness?.ready_for_g1 ? "READY" : "NOT READY"}</span>
+        </p>
+        <p className="metric">
+          <strong>Opportunity versions</strong>
+          <span>{props.opportunities.length}</span>
+        </p>
+      </div>
+      {scoreEntries.length > 0 ? (
+        <div className="metric-grid">
+          {scoreEntries.map(([key, value]) => (
+            <p className="metric" key={key}>
+              <strong>{key}</strong>
+              <span>{String(value)}</span>
+            </p>
+          ))}
+        </div>
+      ) : null}
+      <div className="split equal">
+        <ListBlock title="Blocking reasons" items={props.readiness?.blocking_reasons ?? []} />
+        <ListBlock title="Missing evidence" items={props.readiness?.missing_evidence ?? []} />
+        <ListBlock title="Required follow-ups" items={props.readiness?.required_followups ?? []} />
+      </div>
+      <div className="split equal">
+        <div className="stack">
+          <strong>Opportunity list</strong>
+          {props.opportunities.length === 0 ? (
+            <p className="muted">아직 저장된 opportunity가 없습니다.</p>
+          ) : null}
+          {props.opportunities.map((opportunity) => (
+            <p className="list-row" key={opportunity.id}>
+              <span className="status">v{opportunity.work_model_version}</span>
+              <span>{opportunity.id.slice(0, 8)}</span>
+              <span className={opportunity.schema_valid ? "success" : "error"}>
+                {opportunity.schema_valid ? "schema valid" : "schema invalid"}
+              </span>
+            </p>
+          ))}
+        </div>
+        <pre>
+          {props.latestOpportunity
+            ? JSON.stringify(props.latestOpportunity.payload, null, 2)
+            : "아직 분석된 opportunity가 없습니다."}
+        </pre>
+      </div>
+      <pre>
+        {props.opportunityDiff
+          ? JSON.stringify(props.opportunityDiff, null, 2)
+          : "Diff는 저장된 opportunity가 2개 이상일 때 확인할 수 있습니다."}
+      </pre>
+    </section>
+  )
+}
+
 export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] }) {
   return (
     <section className="panel stack">
-      <h2>5. Audit events</h2>
+      <h2>6. Audit events</h2>
       {events.length === 0 ? <p className="muted">아직 표시할 감사 이벤트가 없습니다.</p> : null}
       {events.map((event) => (
         <p key={event.id}>
@@ -244,6 +339,20 @@ export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] 
         </p>
       ))}
     </section>
+  )
+}
+
+function ListBlock({ title, items }: { readonly title: string; readonly items: readonly string[] }) {
+  return (
+    <div className="stack list-block">
+      <strong>{title}</strong>
+      {items.length === 0 ? <p className="muted">없음</p> : null}
+      {items.map((item) => (
+        <p className="list-row" key={item}>
+          {item}
+        </p>
+      ))}
+    </div>
   )
 }
 

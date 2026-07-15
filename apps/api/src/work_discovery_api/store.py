@@ -22,6 +22,7 @@ from work_discovery_api.models import (
     EvidenceCreate,
     InterviewRead,
     JsonObject,
+    OpportunityRead,
     ProjectRead,
     QuestionRead,
     WorkModelRead,
@@ -55,6 +56,7 @@ class MemoryStore:
     questions: dict[str, tuple[QuestionRead, ...]] = field(default_factory=dict)
     answers: dict[str, list[AnswerRead]] = field(default_factory=dict)
     work_models: dict[str, list[WorkModelRead]] = field(default_factory=dict)
+    opportunities: dict[str, list[OpportunityRead]] = field(default_factory=dict)
     audit_events: list[AuditEventRead] = field(default_factory=list)
 
     def create_project(self, name: str, workspace_name: str) -> ProjectRead:
@@ -101,6 +103,18 @@ class MemoryStore:
 
     def get_interview(self, interview_id: str) -> InterviewRead:
         return self.interview_read(self.require_interview(interview_id))
+
+    def list_project_interviews(self, project_id: str) -> tuple[InterviewRead, ...]:
+        self.require_project(project_id)
+        records = [
+            record
+            for record in self.interviews.values()
+            if record.project_id == project_id
+        ]
+        return tuple(
+            self.interview_read(record)
+            for record in sorted(records, key=lambda item: item.created_at)
+        )
 
     def grant_consent(self, interview_id: str, consent: ConsentRequest) -> InterviewRead:
         record = self.require_interview(interview_id)
@@ -288,6 +302,37 @@ class MemoryStore:
             {"project_id": project_id, "valid": valid},
         )
         return model
+
+    def save_opportunity(
+        self,
+        project_id: str,
+        work_model_version: int,
+        payload: JsonObject,
+        valid: bool,
+    ) -> OpportunityRead:
+        self.require_project(project_id)
+        opportunity = OpportunityRead(
+            id=str(uuid4()),
+            project_id=project_id,
+            work_model_version=work_model_version,
+            payload=payload,
+            schema_valid=valid,
+            created_at=utc_now(),
+        )
+        self.opportunities.setdefault(project_id, []).append(opportunity)
+        return opportunity
+
+    def get_opportunity(self, opportunity_id: str) -> OpportunityRead:
+        for opportunities in self.opportunities.values():
+            for opportunity in opportunities:
+                if opportunity.id == opportunity_id:
+                    return opportunity
+        message = f"opportunity {opportunity_id} not found"
+        raise KeyError(message)
+
+    def list_opportunities(self, project_id: str) -> tuple[OpportunityRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.opportunities.get(project_id, ()))
 
     def transition_interview(
         self,

@@ -160,6 +160,56 @@ class OpportunityDraftRead(BaseModel):
     created_at: datetime
 
 
+class OpportunityRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    work_model_version: int
+    payload: JsonObject
+    schema_valid: bool
+    created_at: datetime
+
+
+class OpportunityValidateRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    accepted: bool = True
+    notes: str = ""
+
+
+class ReadinessRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    project_id: str
+    interview_id: str | None
+    work_model_version: int | None
+    ready_for_g1: bool
+    result: str
+    blocking_reasons: tuple[str, ...]
+    missing_evidence: tuple[str, ...]
+    required_followups: tuple[str, ...]
+    score_summary: JsonObject
+    created_at: datetime
+
+
+class OpportunityDiffRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    project_id: str
+    previous_opportunity_id: str
+    latest_opportunity_id: str
+    score_changes: JsonObject
+    gate_result_changed: bool
+    previous_gate_result: str
+    latest_gate_result: str
+    added_evidence_refs: tuple[str, ...]
+    removed_evidence_refs: tuple[str, ...]
+    changed_blocked_reasons: tuple[str, ...]
+    recommendation_changed: bool
+    created_at: datetime
+
+
 class WorkModelValidateRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
 

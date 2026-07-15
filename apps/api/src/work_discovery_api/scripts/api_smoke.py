@@ -74,6 +74,26 @@ def main() -> None:
     opportunity = client.get(f"/v1/interviews/{interview_id}/opportunities/draft")
     opportunity.raise_for_status()
     assert opportunity.json()["schema_valid"] is True
+    analyzed = client.post(f"/v1/projects/{project_id}/opportunities/analyze")
+    analyzed.raise_for_status()
+    assert analyzed.json()["schema_valid"] is True
+    readiness = client.get(f"/v1/projects/{project_id}/readiness")
+    readiness.raise_for_status()
+    assert readiness.json()["result"] in {
+        "BLOCKED",
+        "DISCOVERY_NEEDED",
+        "ENABLE_FIRST",
+        "READY_FOR_DESIGN",
+    }
+    validation = client.post(
+        f"/v1/opportunities/{analyzed.json()['id']}/validate",
+        json={"accepted": True, "notes": "smoke"},
+    )
+    validation.raise_for_status()
+    assert validation.json()["valid"] is True
+    diff = client.get(f"/v1/projects/{project_id}/opportunities/diff")
+    diff.raise_for_status()
+    assert diff.json()["latest_opportunity_id"] == analyzed.json()["id"]
 
     confirmed = client.post(f"/v1/interviews/{interview_id}/playback/confirm")
     confirmed.raise_for_status()
@@ -85,6 +105,10 @@ def main() -> None:
     assert "WORK_MODEL_REBUILT" in actions
     assert "PLAYBACK_CONFIRMED" in actions
     assert "OPPORTUNITY_DRAFT_GENERATED" in actions
+    assert "OPPORTUNITY_ANALYZED" in actions
+    assert "OPPORTUNITY_VALIDATED" in actions
+    assert "READINESS_EVALUATED" in actions
+    assert "OPPORTUNITY_DIFF_GENERATED" in actions
     print("api smoke OK")
 
 

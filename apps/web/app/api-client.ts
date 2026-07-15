@@ -74,6 +74,49 @@ export type OpportunityDraft = {
   readonly created_at: string
 }
 
+export type Opportunity = {
+  readonly id: string
+  readonly project_id: string
+  readonly work_model_version: number
+  readonly payload: Record<string, unknown>
+  readonly schema_valid: boolean
+  readonly created_at: string
+}
+
+export type Readiness = {
+  readonly project_id: string
+  readonly interview_id: string | null
+  readonly work_model_version: number | null
+  readonly ready_for_g1: boolean
+  readonly result: string
+  readonly blocking_reasons: readonly string[]
+  readonly missing_evidence: readonly string[]
+  readonly required_followups: readonly string[]
+  readonly score_summary: Record<string, unknown>
+  readonly created_at: string
+}
+
+export type OpportunityDiff = {
+  readonly project_id: string
+  readonly previous_opportunity_id: string
+  readonly latest_opportunity_id: string
+  readonly score_changes: Record<string, unknown>
+  readonly gate_result_changed: boolean
+  readonly previous_gate_result: string
+  readonly latest_gate_result: string
+  readonly added_evidence_refs: readonly string[]
+  readonly removed_evidence_refs: readonly string[]
+  readonly changed_blocked_reasons: readonly string[]
+  readonly recommendation_changed: boolean
+  readonly created_at: string
+}
+
+export type ValidationResult = {
+  readonly valid: boolean
+  readonly schema_name: string
+  readonly error: string | null
+}
+
 export type AuditEvent = {
   readonly id: string
   readonly action: string

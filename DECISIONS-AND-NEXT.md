@@ -5,7 +5,8 @@
 - M0: 프로젝트/인터뷰, 동의 게이트, 고정 10문항, immutable answer turn, schema validation 완료
 - M1/M2: repository 경계, PostgreSQL 선택 경로, 웹 클릭 흐름, deterministic Work Model builder, playback confirm/reject 완료
 - M3: reject 후 evidence/revision/rebuild 루프, coverage/next-question API, deterministic opportunity draft, provider interface 경계 완료
-- 다음 M4: 실제 LLM이 아닌 evaluator 수준의 reasoning 규칙을 먼저 강화하고, opportunity scoring 근거·위험·전제조건을 더 엄격하게 검증한다.
+- M4: Work Model 근거 기반 deterministic opportunity scoring, readiness gate, opportunity diff, audit 추적, 웹 scoring 패널 완료
+- 다음 M5: G1 설계 패키지 생성 경계와 export 가능한 design package 초안을 만든다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
 
 ## 1. 이번 설계에서 확정한 사항
 
@@ -135,7 +136,7 @@
 
 ---
 
-## 5. 바로 다음 구현 작업 — M4
+## 5. 완료된 구현 작업 — M4
 
 1. Opportunity analyzer를 deterministic mock에서 근거 기반 scoring engine으로 강화
 2. value, feasibility, risk, evidence confidence, oversight 점수 산식과 임계값 테스트 추가
@@ -143,3 +144,14 @@
 4. reject/rebuild 후 opportunity draft가 이전 draft와 어떻게 달라졌는지 diff 제공
 5. G1 명세 생성 전 단계의 readiness gate 정의
 6. 여전히 실제 LLM, STT, 외부 시스템 실행, 실제 G1 생성은 비범위로 유지
+
+---
+
+## 6. 바로 다음 구현 작업 — M5
+
+1. `READY_FOR_DESIGN` 또는 `ENABLE_FIRST` opportunity를 입력으로 받는 G1 design package 초안 API 정의
+2. G1 산출물 schema 초안 작성: problem, scope, user flow, data contract, integration assumptions, acceptance tests
+3. 실제 코드 생성·외부 실행 없이 deterministic package builder 구현
+4. readiness가 부족한 opportunity는 G1 package 생성을 거부하고 follow-up을 반환
+5. 웹에서 selected opportunity 기준 design package preview/export 확인
+6. audit event와 schema validation test 추가

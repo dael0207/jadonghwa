@@ -14,6 +14,7 @@ from work_discovery_api.domain import (
     InvalidTransitionError,
 )
 from work_discovery_api.m3_routes import register_m3_routes
+from work_discovery_api.m4_routes import register_m4_routes
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
@@ -46,7 +47,7 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     analyzer = DeterministicOpportunityAnalyzer()
     app = FastAPI(
         title="Work Discovery AI API",
-        version="0.3.0",
+        version="0.4.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -281,6 +282,7 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
         )
 
     register_m3_routes(app, app_store, paths, selector, analyzer)
+    register_m4_routes(app, app_store, paths, analyzer)
 
     return app
 

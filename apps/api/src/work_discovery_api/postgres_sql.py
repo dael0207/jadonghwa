@@ -15,6 +15,14 @@ INTERVIEW = (
     "LEFT JOIN answers a ON a.turn_id = t.id "
     "WHERE i.id = %s GROUP BY i.id"
 )
+PROJECT_INTERVIEWS = (
+    "SELECT i.id, i.project_id, i.status, i.active_consent, i.created_at, "
+    "count(DISTINCT a.question_id)::int AS answered_count "
+    "FROM interview_sessions i "
+    "LEFT JOIN turns t ON t.interview_id = i.id "
+    "LEFT JOIN answers a ON a.turn_id = t.id "
+    "WHERE i.project_id = %s GROUP BY i.id ORDER BY i.created_at ASC"
+)
 INSERT_INTERVIEW = (
     "INSERT INTO interview_sessions (id, project_id, status, active_consent) "
     "VALUES (%s, %s, %s, false)"
@@ -102,6 +110,19 @@ NEXT_MODEL_VERSION = (
 INSERT_WORK_MODEL = (
     "INSERT INTO work_models (id, project_id, version, payload, schema_valid) "
     "VALUES (%s, %s, %s, %s, %s)"
+)
+INSERT_OPPORTUNITY = (
+    "INSERT INTO opportunity_drafts "
+    "(id, project_id, work_model_version, payload, schema_valid) "
+    "VALUES (%s, %s, %s, %s, %s)"
+)
+OPPORTUNITY = (
+    "SELECT id, project_id, work_model_version, payload, schema_valid, created_at "
+    "FROM opportunity_drafts WHERE id = %s"
+)
+OPPORTUNITIES_BY_PROJECT = (
+    "SELECT id, project_id, work_model_version, payload, schema_valid, created_at "
+    "FROM opportunity_drafts WHERE project_id = %s ORDER BY created_at ASC, id ASC"
 )
 INSERT_AUDIT = (
     "INSERT INTO audit_events (id, subject_id, action, metadata) "

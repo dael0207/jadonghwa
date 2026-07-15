@@ -54,7 +54,7 @@ npm install
 npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, diff, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
 
 ## 저장소와 데이터베이스
 
@@ -70,7 +70,7 @@ npm install
 npm run migration:smoke
 ```
 
-## M1/M2/M3 검증
+## M1/M2/M3/M4 검증
 
 ```bash
 cd apps/api
@@ -110,6 +110,36 @@ M3까지 의도적으로 구현하지 않는 것:
 - 외부 업무 시스템 실행
 - 실제 자격증명 수집
 - 실제 자동화 후보 분석
+- 실제 G1 명세 생성
+
+## M4 deterministic opportunity scoring
+
+M4는 M3의 단순 opportunity draft를 근거 기반 scoring engine으로 교체한다. 엔진은 LLM을 호출하지 않고 schema-valid Work Model의 `steps`, `artifacts`, `systems`, `rules`, `decisions`, `exceptions`, `pain_points`, `constraints`, `evidence_summary`, `understanding_gate`만 읽어 아래 차원을 분리해 계산한다.
+
+- `value`: 반복 단계, manual touch, pain point, metric 존재 여부
+- `feasibility`: 구조화된 입력·출력, 시스템 접근 방식, 규칙·결정 명확성
+- `risk`: 보안·권한·재무·품질 제약과 예외 처리 필요성
+- `evidence_confidence`: source ref, confirmed claim rate, open gap, contradiction
+- `oversight`: 사람이 유지해야 하는 승인·예외 처리 수준
+
+M4는 단일 총점을 만들지 않는다. 결과는 `portfolio_class`와 `gate.result`로 나뉘며, gate는 `BLOCKED`, `DISCOVERY_NEEDED`, `ENABLE_FIRST`, `READY_FOR_DESIGN` 중 하나다. `READY_FOR_DESIGN`은 G1 설계로 넘어갈 준비 여부만 뜻하며 G1 명세를 생성하지 않는다.
+
+추가 API:
+
+- `POST /v1/projects/{project_id}/opportunities/analyze`
+- `GET /v1/projects/{project_id}/opportunities`
+- `GET /v1/opportunities/{opportunity_id}`
+- `POST /v1/opportunities/{opportunity_id}/validate`
+- `GET /v1/interviews/{interview_id}/readiness`
+- `GET /v1/projects/{project_id}/readiness`
+- `GET /v1/projects/{project_id}/opportunities/diff`
+
+M4에서도 의도적으로 구현하지 않는 것:
+
+- 실제 LLM 판단
+- STT 및 음성 녹음
+- 외부 시스템 실행
+- 실제 자격증명 수집
 - 실제 G1 명세 생성
 
 새 의존성:

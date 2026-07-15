@@ -167,6 +167,11 @@ textarea {
   align-items: end;
 }
 
+.split.equal {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: start;
+}
+
 .coverage-grid {
   display: grid;
   gap: 8px;
@@ -182,6 +187,39 @@ textarea {
   border: 1px solid var(--border-default);
   border-radius: 6px;
   padding: 10px;
+}
+
+.metric-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.metric,
+.list-block {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-height: 72px;
+  margin: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.list-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  border-top: 1px solid var(--border-default);
+  padding-top: 8px;
+}
+
+.list-row:first-of-type {
+  border-top: 0;
+  padding-top: 0;
 }
 
 pre {

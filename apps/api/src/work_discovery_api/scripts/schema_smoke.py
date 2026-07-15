@@ -16,6 +16,7 @@ def main() -> None:
             paths.root / "examples" / "monthly-report-interview-state.json",
         ),
         (paths.opportunity_schema, paths.root / "examples" / "monthly-report-opportunity.json"),
+        (paths.opportunity_schema, paths.root / "examples" / "monthly-report-opportunity-m4.json"),
     )
     for schema_path, example_path in pairs:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))

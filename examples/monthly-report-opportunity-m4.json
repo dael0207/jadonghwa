@@ -1,0 +1,126 @@
+{
+  "opportunity_id": "opp-monthly-report-m4",
+  "project_id": "project-monthly-report",
+  "work_model_id": "wm-monthly-report-v1",
+  "target_refs": ["process-monthly-report"],
+  "problem_statement": "Monthly reporting has repeated manual steps, structured input/output files, and known approval risks. M4 scores the opportunity as useful but still human-controlled before G1 design.",
+  "recommendation": {
+    "solution_mode": "SIMPLIFY_STANDARDIZE",
+    "title": "Enable the workflow before design",
+    "rationale": "Value=100, feasibility=100, risk=3, evidence_confidence=0.94. Human oversight remains necessary because approval and security boundaries still matter.",
+    "scope": ["Input/output standardization", "Rules and exception mapping", "Evidence capture"],
+    "autonomy_level": 1
+  },
+  "alternative_options": [
+    {
+      "solution_mode": "KNOWLEDGE_ASSIST",
+      "title": "Assistive work guide",
+      "rationale": "Guide the user through checks and evidence capture while execution stays manual.",
+      "scope": ["Draft guidance", "Evidence reminders", "Human approval"],
+      "autonomy_level": 1
+    }
+  ],
+  "scores": {
+    "value": 100,
+    "feasibility": 100,
+    "risk": 3,
+    "evidence_confidence": 0.94,
+    "oversight": 4,
+    "portfolio_class": "HUMAN_CONTROLLED",
+    "score_explanation": [
+      "Value 100: repeated monthly work, manual steps, pain points, and a time metric are present.",
+      "Feasibility 100: structured files, stable systems, and explicit rules are present.",
+      "Risk 3: security constraint and exception handling require human control.",
+      "Evidence confidence 0.94: source links and confirmed claims are strong.",
+      "Oversight 4: human approval remains required before any external action."
+    ]
+  },
+  "gate": {
+    "result": "ENABLE_FIRST",
+    "blocked_reasons": ["Risk requires stronger human oversight before design"]
+  },
+  "human_role": {
+    "retained_responsibilities": [
+      "Confirm source evidence",
+      "Approve any action that affects external systems",
+      "Keep final decision authority with the user"
+    ],
+    "approval_points": [
+      "Before G1 design starts",
+      "Before any pilot uses real business data",
+      "Before recommendations are applied to production work"
+    ],
+    "exception_handling": [
+      "Route known exceptions to manual review",
+      "Track unresolved exception categories"
+    ],
+    "override_available": true
+  },
+  "benefit_estimate": {
+    "basis": "USER_ESTIMATE",
+    "annual_manual_hours": { "min": 24, "max": 72, "typical": 48 },
+    "annual_rework_hours": { "min": 0, "max": 42, "typical": 21 },
+    "recoverable_hours": { "min": 0, "max": 32.4, "typical": 21.6 },
+    "annual_total_benefit": { "currency": "KRW", "min": 0, "max": 0, "typical": 0 },
+    "build_cost": { "currency": "KRW", "min": 0, "max": 0, "typical": 0 },
+    "annual_run_cost": { "currency": "KRW", "min": 0, "max": 0, "typical": 0 },
+    "assumptions": [
+      "M4 does not estimate money from real measurements.",
+      "Hours are deterministic placeholders derived from captured work structure."
+    ]
+  },
+  "risks": [
+    {
+      "category": "OPERATIONS",
+      "level": 3,
+      "description": "The work model may still omit edge cases or control points.",
+      "control": "Require playback confirmation and readiness review before G1 design.",
+      "residual_level": 2
+    },
+    {
+      "category": "SECURITY",
+      "level": 3,
+      "description": "Constraints mention security, authority, privacy, or financial exposure.",
+      "control": "Keep external execution and credential collection out of scope.",
+      "residual_level": 2
+    }
+  ],
+  "prerequisites": [
+    "Schema-valid Work Model",
+    "Active consent",
+    "Human-readable playback evidence",
+    "Clarify ERP API access boundary"
+  ],
+  "evidence_refs": [
+    "answer-001",
+    "answer-015",
+    "answer-017",
+    "answer-019",
+    "answer-020",
+    "answer-021",
+    "answer-022",
+    "answer-024"
+  ],
+  "open_questions": [
+    "Collect evidence for ERP API access boundary",
+    "Clarify human approval and authority boundary"
+  ],
+  "validation_experiment": {
+    "hypothesis": "The scored opportunity reflects the confirmed work model evidence.",
+    "method": "Review score explanations, blockers, and evidence references with the user.",
+    "sample": "Latest schema-valid Work Model for one project.",
+    "success_criteria": [
+      "Gate result is accepted as ENABLE_FIRST.",
+      "Blocking reasons and follow-ups are either resolved or explicitly deferred."
+    ]
+  },
+  "mvp_scope": ["Resolve readiness blockers before G1 design work"],
+  "non_goals": [
+    "Real LLM scoring",
+    "STT or voice recording",
+    "External system execution",
+    "Credential collection",
+    "G1 specification generation"
+  ],
+  "created_at": "2026-07-15T00:00:00Z"
+}

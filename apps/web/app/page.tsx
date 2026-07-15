@@ -11,12 +11,23 @@ import {
   type Coverage,
   type Interview,
   type NextQuestion,
+  type Opportunity,
+  type OpportunityDiff,
   type OpportunityDraft,
   type Project,
   type Question,
+  type Readiness,
+  type ValidationResult,
   type WorkModel,
 } from "./api-client"
-import { AuditPanel, M3Panel, ProjectPanel, QuestionsPanel, WorkModelPanel } from "./workbench-sections"
+import {
+  AuditPanel,
+  M3Panel,
+  M4Panel,
+  ProjectPanel,
+  QuestionsPanel,
+  WorkModelPanel,
+} from "./workbench-sections"
 
 export default function Page() {
   const [projectName, setProjectName] = useState("월간 보고 업무")
@@ -31,6 +42,10 @@ export default function Page() {
   const [coverage, setCoverage] = useState<Coverage | null>(null)
   const [nextQuestion, setNextQuestion] = useState<NextQuestion | null>(null)
   const [opportunityDraft, setOpportunityDraft] = useState<OpportunityDraft | null>(null)
+  const [opportunities, setOpportunities] = useState<readonly Opportunity[]>([])
+  const [latestOpportunity, setLatestOpportunity] = useState<Opportunity | null>(null)
+  const [readiness, setReadiness] = useState<Readiness | null>(null)
+  const [opportunityDiff, setOpportunityDiff] = useState<OpportunityDiff | null>(null)
   const [auditEvents, setAuditEvents] = useState<readonly AuditEvent[]>([])
   const [evidenceText, setEvidenceText] = useState("")
   const [revisionAnswerId, setRevisionAnswerId] = useState("")
@@ -49,18 +64,26 @@ export default function Page() {
   }
 
   async function refreshDerived(next: Interview) {
-    const [events, history, coverageBody, nextBody, answerList] = await Promise.all([
+    const [events, history, coverageBody, nextBody, answerList, opportunityList] =
+      await Promise.all([
       api.get(`v1/projects/${next.project_id}/audit-events`).json<AuditEvent[]>(),
       api.get(`v1/projects/${next.project_id}/work-models`).json<WorkModel[]>(),
       api.get(`v1/interviews/${next.id}/coverage`).json<Coverage>(),
       api.get(`v1/interviews/${next.id}/next-question`).json<NextQuestion>(),
       api.get(`v1/interviews/${next.id}/answers`).json<Answer[]>(),
+      api.get(`v1/projects/${next.project_id}/opportunities`).json<Opportunity[]>(),
     ])
     setAuditEvents(events)
     setWorkModels(history)
     setCoverage(coverageBody)
     setNextQuestion(nextBody)
     setAnswerHistory(answerList)
+    setOpportunities(opportunityList)
+    setLatestOpportunity(latestItem(opportunityList))
+    if (opportunityList.length === 0) {
+      setReadiness(null)
+      setOpportunityDiff(null)
+    }
   }
 
   async function refreshInterview(interviewId: string) {
@@ -82,6 +105,10 @@ export default function Page() {
       setStatuses({})
       setWorkModel(null)
       setOpportunityDraft(null)
+      setOpportunities([])
+      setLatestOpportunity(null)
+      setReadiness(null)
+      setOpportunityDiff(null)
       setEvidenceText("")
       setRevisionText("")
       setRevisionAnswerId("")
@@ -216,11 +243,87 @@ export default function Page() {
     })
   }
 
+  async function analyzeOpportunity() {
+    if (!project) return
+    await run(async () => {
+      const opportunity = await api
+        .post(`v1/projects/${project.id}/opportunities/analyze`)
+        .json<Opportunity>()
+      setLatestOpportunity(opportunity)
+      await refreshProjectM4(project.id)
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(`Opportunity ${opportunity.id.slice(0, 8)} 분석을 저장했습니다.`)
+    })
+  }
+
+  async function validateOpportunity() {
+    if (!latestOpportunity) return
+    await run(async () => {
+      const validation = await api
+        .post(`v1/opportunities/${latestOpportunity.id}/validate`, {
+          json: { accepted: true, notes: "validated in local UI" },
+        })
+        .json<ValidationResult>()
+      if (project) {
+        await refreshProjectM4(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(validation.valid ? "Opportunity schema 검증을 통과했습니다." : "Opportunity 검증 실패")
+    })
+  }
+
+  async function loadReadiness() {
+    if (!project) return
+    await run(async () => {
+      const body = await api.get(`v1/projects/${project.id}/readiness`).json<Readiness>()
+      setReadiness(body)
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(`Readiness 결과: ${body.result}`)
+    })
+  }
+
+  async function loadOpportunityDiff() {
+    if (!project) return
+    await run(async () => {
+      const body = await api.get(`v1/projects/${project.id}/opportunities/diff`).json<OpportunityDiff>()
+      setOpportunityDiff(body)
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage("Opportunity diff를 불러왔습니다.")
+    })
+  }
+
+  async function refreshProjectM4(projectId: string) {
+    const opportunityList = await api.get(`v1/projects/${projectId}/opportunities`).json<Opportunity[]>()
+    setOpportunities(opportunityList)
+    setLatestOpportunity(latestItem(opportunityList))
+    if (opportunityList.length === 0) {
+      setReadiness(null)
+      setOpportunityDiff(null)
+      return
+    }
+    const body = await api.get(`v1/projects/${projectId}/readiness`).json<Readiness>()
+    setReadiness(body)
+    if (opportunityList.length >= 2) {
+      const diff = await api.get(`v1/projects/${projectId}/opportunities/diff`).json<OpportunityDiff>()
+      setOpportunityDiff(diff)
+    } else {
+      setOpportunityDiff(null)
+    }
+  }
+
   return (
     <main className="shell">
       <header className="header">
         <h1>Work Discovery AI</h1>
-        <p>M3 인터뷰 작업 화면</p>
+        <p>M4 인터뷰와 opportunity scoring 작업 화면</p>
       </header>
       <div className="grid">
         <ProjectPanel
@@ -269,8 +372,26 @@ export default function Page() {
           onRefreshCoverage={refreshM3}
           onLoadOpportunity={loadOpportunityDraft}
         />
+        <M4Panel
+          project={project}
+          opportunities={opportunities}
+          latestOpportunity={latestOpportunity}
+          readiness={readiness}
+          opportunityDiff={opportunityDiff}
+          onAnalyze={analyzeOpportunity}
+          onValidate={validateOpportunity}
+          onReadiness={loadReadiness}
+          onDiff={loadOpportunityDiff}
+        />
         <AuditPanel events={auditEvents} />
       </div>
     </main>
   )
+}
+
+function latestItem<T>(items: readonly T[]): T | null {
+  if (items.length === 0) {
+    return null
+  }
+  return items[items.length - 1] ?? null
 }

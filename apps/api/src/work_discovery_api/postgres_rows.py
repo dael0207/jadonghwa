@@ -10,6 +10,7 @@ from work_discovery_api.models import (
     AuditEventRead,
     InterviewRead,
     JsonObject,
+    OpportunityRead,
     ProjectRead,
     QuestionRead,
     WorkModelRead,
@@ -79,6 +80,17 @@ def work_model_from_row(row: Row) -> WorkModelRead:
     return WorkModelRead(
         project_id=str(row["project_id"]),
         version=int_value(row["version"]),
+        payload=cast("JsonObject", row["payload"]),
+        schema_valid=bool(row["schema_valid"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def opportunity_from_row(row: Row) -> OpportunityRead:
+    return OpportunityRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        work_model_version=int_value(row["work_model_version"]),
         payload=cast("JsonObject", row["payload"]),
         schema_valid=bool(row["schema_valid"]),
         created_at=cast("datetime", row["created_at"]),

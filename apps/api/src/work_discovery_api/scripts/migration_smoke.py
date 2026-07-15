@@ -15,6 +15,7 @@ REQUIRED_TABLES: frozenset[str] = frozenset(
         "questions",
         "answers",
         "work_models",
+        "opportunity_drafts",
         "audit_events",
         "deletion_jobs",
     },
@@ -22,14 +23,11 @@ REQUIRED_TABLES: frozenset[str] = frozenset(
 
 
 def main() -> None:
-    migration = (
-        default_contract_paths().root
-        / "infra"
-        / "db"
-        / "migrations"
-        / "001_m0_foundation.sql"
+    migration_dir = default_contract_paths().root / "infra" / "db" / "migrations"
+    sql = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(migration_dir.glob("*.sql"))
     )
-    sql = migration.read_text(encoding="utf-8")
     created = frozenset(re.findall(r"CREATE TABLE IF NOT EXISTS ([a-z_]+)", sql))
     missing = REQUIRED_TABLES - created
     if missing:

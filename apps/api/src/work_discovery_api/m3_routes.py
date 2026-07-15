@@ -142,6 +142,12 @@ def register_m3_routes(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=validation_error,
                 )
+            opportunity = app_store.save_opportunity(
+                interview.project_id,
+                model.version,
+                payload,
+                valid=True,
+            )
             app_store.record_audit(
                 interview_id,
                 AuditAction.OPPORTUNITY_DRAFT_GENERATED,
@@ -149,6 +155,7 @@ def register_m3_routes(
                     "project_id": interview.project_id,
                     "interview_id": interview_id,
                     "work_model_version": model.version,
+                    "opportunity_id": opportunity.id,
                 },
             )
             return OpportunityDraftRead(

@@ -27,6 +27,7 @@ from work_discovery_api.models import (
     EvidenceCreate,
     InterviewRead,
     JsonObject,
+    OpportunityRead,
     ProjectRead,
     QuestionRead,
     WorkModelRead,
@@ -46,6 +47,7 @@ from work_discovery_api.postgres_rows import (
     int_value,
     interview_from_row,
     one,
+    opportunity_from_row,
     project_from_row,
     question_from_row,
     work_model_from_row,
@@ -99,6 +101,12 @@ class PostgresRepository:
     def get_interview(self, interview_id: str) -> InterviewRead:
         with self._connect() as conn:
             return interview_from_row(one(conn, sql.INTERVIEW, (UUID(interview_id),)))
+
+    def list_project_interviews(self, project_id: str) -> tuple[InterviewRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.PROJECT_INTERVIEWS, (UUID(project_id),)).fetchall()
+            return tuple(interview_from_row(row) for row in rows)
 
     def grant_consent(self, interview_id: str, consent: ConsentRequest) -> InterviewRead:
         current = self.get_interview(interview_id)
@@ -312,6 +320,38 @@ class PostgresRepository:
                 {"project_id": project_id, "valid": valid},
             )
             return work_model_from_row(one(conn, sql.WORK_MODEL_BY_ID, (model_id,)))
+
+    def save_opportunity(
+        self,
+        project_id: str,
+        work_model_version: int,
+        payload: JsonObject,
+        valid: bool,
+    ) -> OpportunityRead:
+        self.require_project(project_id)
+        opportunity_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_OPPORTUNITY,
+                (
+                    opportunity_id,
+                    UUID(project_id),
+                    work_model_version,
+                    Jsonb(payload),
+                    valid,
+                ),
+            )
+            return opportunity_from_row(one(conn, sql.OPPORTUNITY, (opportunity_id,)))
+
+    def get_opportunity(self, opportunity_id: str) -> OpportunityRead:
+        with self._connect() as conn:
+            return opportunity_from_row(one(conn, sql.OPPORTUNITY, (UUID(opportunity_id),)))
+
+    def list_opportunities(self, project_id: str) -> tuple[OpportunityRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.OPPORTUNITIES_BY_PROJECT, (UUID(project_id),)).fetchall()
+            return tuple(opportunity_from_row(row) for row in rows)
 
     def transition_interview(self, interview_id: str, target: InterviewStatus) -> InterviewRead:
         current = self.get_interview(interview_id)
