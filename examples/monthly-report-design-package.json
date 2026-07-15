@@ -1,0 +1,165 @@
+{
+  "package_id": "dp-monthly-report-v1",
+  "project_id": "project-monthly-report",
+  "opportunity_id": "opp-monthly-report-m4",
+  "source_work_model_id": "wm-monthly-report-v1",
+  "source_work_model_version": 1,
+  "readiness_result": "ENABLE_FIRST",
+  "package_type": "ENABLEMENT_PREP",
+  "problem": {
+    "statement": "Monthly reporting repeats manual collection, validation, and approval work across stable spreadsheets and ERP exports, but security and authority boundaries require enablement before full G1 design.",
+    "evidence_refs": ["answer-001", "answer-015", "answer-017"]
+  },
+  "target_users": [
+    {
+      "role": "Finance operations analyst",
+      "responsibilities": [
+        "Prepare monthly report inputs",
+        "Confirm source evidence",
+        "Approve final report before distribution"
+      ]
+    }
+  ],
+  "scope": [
+    "Standardize required source files",
+    "Map validation rules and known exceptions",
+    "Prepare human approval checkpoints"
+  ],
+  "non_goals": [
+    "Real LLM scoring",
+    "STT or voice recording",
+    "External system execution",
+    "Credential collection",
+    "Actual application code generation"
+  ],
+  "user_flow": [
+    {
+      "step_id": "flow-collect-inputs",
+      "actor": "Finance operations analyst",
+      "action": "Collect ERP export and spreadsheet inputs",
+      "output": "Input evidence bundle ready for review",
+      "evidence_refs": ["answer-015"]
+    },
+    {
+      "step_id": "flow-validate-rules",
+      "actor": "Finance operations analyst",
+      "action": "Check mapped rules and unresolved exceptions",
+      "output": "Exception list and rule coverage summary",
+      "evidence_refs": ["answer-019", "answer-020"]
+    },
+    {
+      "step_id": "flow-approve",
+      "actor": "Finance operations analyst",
+      "action": "Approve whether the package can proceed to G1 design",
+      "output": "Human approval or follow-up blocker",
+      "evidence_refs": ["answer-021", "answer-022"]
+    }
+  ],
+  "data_contract": {
+    "inputs": [
+      {
+        "name": "ERP monthly export",
+        "kind": "ARTIFACT",
+        "format": "CSV",
+        "source_refs": ["answer-015"]
+      },
+      {
+        "name": "Monthly workbook",
+        "kind": "ARTIFACT",
+        "format": "XLSX",
+        "source_refs": ["answer-017"]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "Exception review summary",
+        "kind": "DERIVED",
+        "format": "JSON",
+        "source_refs": ["answer-019", "answer-020"]
+      }
+    ],
+    "assumptions": [
+      "M5 only drafts a design package and does not read production systems.",
+      "Any real data access requires a later approval boundary."
+    ]
+  },
+  "system_assumptions": [
+    "ERP access boundary is unresolved and must remain a blocker before implementation.",
+    "Spreadsheet structure is stable enough to standardize input naming.",
+    "No external workflow is executed by this package."
+  ],
+  "human_oversight": {
+    "retained_responsibilities": [
+      "Confirm source evidence",
+      "Approve any action that affects external systems",
+      "Keep final decision authority with the user"
+    ],
+    "approval_points": [
+      "Before G1 design starts",
+      "Before any pilot uses real business data",
+      "Before recommendations are applied to production work"
+    ],
+    "exception_handling": [
+      "Route known exceptions to manual review",
+      "Track unresolved exception categories"
+    ],
+    "override_available": true
+  },
+  "risks_and_controls": [
+    {
+      "risk": "The work model may still omit edge cases or control points.",
+      "control": "Require playback confirmation and readiness review before G1 design.",
+      "level": 3
+    },
+    {
+      "risk": "Security or authority exposure may exist around ERP access.",
+      "control": "Keep external execution and credential collection out of M5 scope.",
+      "level": 3
+    }
+  ],
+  "acceptance_tests": [
+    {
+      "id": "at-schema-valid",
+      "scenario": "Design package schema validation",
+      "given": "A generated monthly report design package",
+      "when": "The schema validator runs",
+      "then": "The package passes design-package-v1.schema.json"
+    },
+    {
+      "id": "at-no-execution",
+      "scenario": "No external execution",
+      "given": "The package is reviewed by a user",
+      "when": "The user inspects the backlog and non-goals",
+      "then": "No step requests credentials, code generation, or external system execution"
+    }
+  ],
+  "implementation_backlog": [
+    {
+      "id": "backlog-standardize-inputs",
+      "title": "Standardize source inputs",
+      "description": "Define required ERP export and workbook naming before any G1 design.",
+      "priority": "MUST"
+    },
+    {
+      "id": "backlog-resolve-access-boundary",
+      "title": "Resolve ERP access boundary",
+      "description": "Clarify whether later pilots can use API, file export, or manual upload only.",
+      "priority": "MUST"
+    }
+  ],
+  "open_questions": [
+    "Collect evidence for ERP API access boundary",
+    "Clarify human approval and authority boundary"
+  ],
+  "evidence_refs": [
+    "answer-001",
+    "answer-015",
+    "answer-017",
+    "answer-019",
+    "answer-020",
+    "answer-021",
+    "answer-022",
+    "answer-024"
+  ],
+  "created_at": "2026-07-15T00:00:00Z"
+}

@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/design-package-v1.schema.json",
+  "title": "Work Discovery AI G1 Design Package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "package_id",
+    "project_id",
+    "opportunity_id",
+    "source_work_model_id",
+    "source_work_model_version",
+    "readiness_result",
+    "package_type",
+    "problem",
+    "target_users",
+    "scope",
+    "non_goals",
+    "user_flow",
+    "data_contract",
+    "system_assumptions",
+    "human_oversight",
+    "risks_and_controls",
+    "acceptance_tests",
+    "implementation_backlog",
+    "open_questions",
+    "evidence_refs",
+    "created_at"
+  ],
+  "properties": {
+    "package_id": { "$ref": "#/$defs/id" },
+    "project_id": { "$ref": "#/$defs/id" },
+    "opportunity_id": { "$ref": "#/$defs/id" },
+    "source_work_model_id": { "$ref": "#/$defs/id" },
+    "source_work_model_version": { "type": "integer", "minimum": 1 },
+    "readiness_result": {
+      "type": "string",
+      "enum": ["READY_FOR_DESIGN", "ENABLE_FIRST"]
+    },
+    "package_type": {
+      "type": "string",
+      "enum": ["FULL_G1", "ENABLEMENT_PREP"]
+    },
+    "problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "evidence_refs"],
+      "properties": {
+        "statement": { "type": "string", "minLength": 1, "maxLength": 3000 },
+        "evidence_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "target_users": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/targetUser" }
+    },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "non_goals": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "user_flow": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/userFlowStep" }
+    },
+    "data_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputs", "outputs", "assumptions"],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dataField" }
+        },
+        "outputs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dataField" }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "system_assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "human_oversight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retained_responsibilities",
+        "approval_points",
+        "exception_handling",
+        "override_available"
+      ],
+      "properties": {
+        "retained_responsibilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "approval_points": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "exception_handling": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "override_available": { "type": "boolean" }
+      }
+    },
+    "risks_and_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/riskControl" }
+    },
+    "acceptance_tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/acceptanceTest" }
+    },
+    "implementation_backlog": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/backlogItem" }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "evidence_refs": { "$ref": "#/$defs/idArray" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "idArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true
+    },
+    "targetUser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "responsibilities"],
+      "properties": {
+        "role": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "responsibilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "userFlowStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "actor", "action", "output", "evidence_refs"],
+      "properties": {
+        "step_id": { "$ref": "#/$defs/id" },
+        "actor": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1 },
+        "output": { "type": "string", "minLength": 1 },
+        "evidence_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "dataField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "format", "source_refs"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": ["ARTIFACT", "SYSTEM", "USER_INPUT", "DERIVED", "CONFIGURATION", "UNKNOWN"]
+        },
+        "format": { "type": "string", "minLength": 1 },
+        "source_refs": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "riskControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk", "control", "level"],
+      "properties": {
+        "risk": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "control": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "level": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "acceptanceTest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scenario", "given", "when", "then"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "scenario": { "type": "string", "minLength": 1 },
+        "given": { "type": "string", "minLength": 1 },
+        "when": { "type": "string", "minLength": 1 },
+        "then": { "type": "string", "minLength": 1 }
+      }
+    },
+    "backlogItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "description", "priority"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "priority": { "type": "string", "enum": ["MUST", "SHOULD", "COULD"] }
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from work_discovery_api.adaptive_interview import DeterministicAdaptiveQuestionSelector
 from work_discovery_api.contracts import default_contract_paths, initial_questions, validate_payload
+from work_discovery_api.design_package_builder import DeterministicDesignPackageBuilder
 from work_discovery_api.domain import (
     AuditAction,
     ConsentRequiredError,
@@ -15,6 +16,7 @@ from work_discovery_api.domain import (
 )
 from work_discovery_api.m3_routes import register_m3_routes
 from work_discovery_api.m4_routes import register_m4_routes
+from work_discovery_api.m5_routes import register_m5_routes
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
@@ -45,9 +47,10 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     builder = DeterministicWorkModelBuilder()
     selector = DeterministicAdaptiveQuestionSelector()
     analyzer = DeterministicOpportunityAnalyzer()
+    design_builder = DeterministicDesignPackageBuilder()
     app = FastAPI(
         title="Work Discovery AI API",
-        version="0.4.0",
+        version="0.5.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -283,6 +286,7 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
 
     register_m3_routes(app, app_store, paths, selector, analyzer)
     register_m4_routes(app, app_store, paths, analyzer)
+    register_m5_routes(app, app_store, paths, design_builder)
 
     return app
 

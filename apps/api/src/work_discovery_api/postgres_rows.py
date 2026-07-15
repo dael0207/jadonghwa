@@ -8,6 +8,7 @@ from work_discovery_api.domain import AnswerStatus, AuditAction, InterviewStatus
 from work_discovery_api.models import (
     AnswerRead,
     AuditEventRead,
+    DesignPackageRead,
     InterviewRead,
     JsonObject,
     OpportunityRead,
@@ -90,6 +91,18 @@ def opportunity_from_row(row: Row) -> OpportunityRead:
     return OpportunityRead(
         id=str(row["id"]),
         project_id=str(row["project_id"]),
+        work_model_version=int_value(row["work_model_version"]),
+        payload=cast("JsonObject", row["payload"]),
+        schema_valid=bool(row["schema_valid"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def design_package_from_row(row: Row) -> DesignPackageRead:
+    return DesignPackageRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        opportunity_id=str(row["opportunity_id"]),
         work_model_version=int_value(row["work_model_version"]),
         payload=cast("JsonObject", row["payload"]),
         schema_valid=bool(row["schema_valid"]),

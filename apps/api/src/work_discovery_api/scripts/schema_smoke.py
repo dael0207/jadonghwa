@@ -17,6 +17,10 @@ def main() -> None:
         ),
         (paths.opportunity_schema, paths.root / "examples" / "monthly-report-opportunity.json"),
         (paths.opportunity_schema, paths.root / "examples" / "monthly-report-opportunity-m4.json"),
+        (
+            paths.design_package_schema,
+            paths.root / "examples" / "monthly-report-design-package.json",
+        ),
     )
     for schema_path, example_path in pairs:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))

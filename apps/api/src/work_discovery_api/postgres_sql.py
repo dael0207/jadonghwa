@@ -95,6 +95,10 @@ WORK_MODEL = (
     "SELECT project_id, version, payload, schema_valid, created_at "
     "FROM work_models WHERE project_id = %s ORDER BY version DESC LIMIT 1"
 )
+WORK_MODEL_BY_VERSION = (
+    "SELECT project_id, version, payload, schema_valid, created_at "
+    "FROM work_models WHERE project_id = %s AND version = %s"
+)
 WORK_MODELS = (
     "SELECT project_id, version, payload, schema_valid, created_at "
     "FROM work_models WHERE project_id = %s ORDER BY version ASC"
@@ -123,6 +127,23 @@ OPPORTUNITY = (
 OPPORTUNITIES_BY_PROJECT = (
     "SELECT id, project_id, work_model_version, payload, schema_valid, created_at "
     "FROM opportunity_drafts WHERE project_id = %s ORDER BY created_at ASC, id ASC"
+)
+INSERT_DESIGN_PACKAGE = (
+    "INSERT INTO design_packages "
+    "(id, project_id, opportunity_id, work_model_version, payload, schema_valid) "
+    "VALUES (%s, %s, %s, %s, %s, %s)"
+)
+DESIGN_PACKAGE = (
+    "SELECT id, project_id, opportunity_id, work_model_version, payload, schema_valid, created_at "
+    "FROM design_packages WHERE id = %s"
+)
+DESIGN_PACKAGES_BY_PROJECT = (
+    "SELECT id, project_id, opportunity_id, work_model_version, payload, schema_valid, created_at "
+    "FROM design_packages WHERE project_id = %s ORDER BY created_at ASC, id ASC"
+)
+DESIGN_PACKAGES_BY_OPPORTUNITY = (
+    "SELECT id, project_id, opportunity_id, work_model_version, payload, schema_valid, created_at "
+    "FROM design_packages WHERE opportunity_id = %s ORDER BY created_at ASC, id ASC"
 )
 INSERT_AUDIT = (
     "INSERT INTO audit_events (id, subject_id, action, metadata) "

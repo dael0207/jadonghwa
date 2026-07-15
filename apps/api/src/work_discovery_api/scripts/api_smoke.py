@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
+
 from fastapi.testclient import TestClient
 
+from work_discovery_api.contracts import default_contract_paths
 from work_discovery_api.main import create_app
 from work_discovery_api.store import MemoryStore
 
@@ -109,6 +112,46 @@ def main() -> None:
     assert "OPPORTUNITY_VALIDATED" in actions
     assert "READINESS_EVALUATED" in actions
     assert "OPPORTUNITY_DIFF_GENERATED" in actions
+
+    rich_project = client.post("/v1/projects", json={"name": "M5 rich monthly report"})
+    rich_project.raise_for_status()
+    rich_project_id = rich_project.json()["id"]
+    rich_interview = client.post(f"/v1/projects/{rich_project_id}/interviews")
+    rich_interview.raise_for_status()
+    rich_interview_id = rich_interview.json()["id"]
+    rich_consent = client.post(
+        f"/v1/interviews/{rich_interview_id}/consent",
+        json={"ai_processing": True, "data_processing": True},
+    )
+    rich_consent.raise_for_status()
+    paths = default_contract_paths()
+    rich_payload = json.loads(
+        (paths.root / "examples" / "monthly-report-work-model.json").read_text("utf-8"),
+    )
+    rich_payload["constraints"] = []
+    rich_payload["exceptions"] = []
+    rich_validation = client.post(
+        f"/v1/projects/{rich_project_id}/work-model/validate",
+        json={"payload": rich_payload},
+    )
+    rich_validation.raise_for_status()
+    rich_analysis = client.post(f"/v1/projects/{rich_project_id}/opportunities/analyze")
+    rich_analysis.raise_for_status()
+    rich_package = client.post(
+        f"/v1/opportunities/{rich_analysis.json()['id']}/design-package",
+    )
+    rich_package.raise_for_status()
+    assert rich_package.json()["schema_valid"] is True
+    assert rich_package.json()["payload"]["package_type"] == "FULL_G1"
+    package_validation = client.post(
+        f"/v1/design-packages/{rich_package.json()['id']}/validate",
+    )
+    package_validation.raise_for_status()
+    assert package_validation.json()["valid"] is True
+    packages = client.get(f"/v1/projects/{rich_project_id}/design-packages")
+    packages.raise_for_status()
+    assert len(packages.json()) == 1
+
     print("api smoke OK")
 
 

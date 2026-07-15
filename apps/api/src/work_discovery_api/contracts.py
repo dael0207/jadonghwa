@@ -30,6 +30,10 @@ class ContractPaths:
     def opportunity_schema(self) -> Path:
         return self.root / "schemas" / "opportunity-v1.schema.json"
 
+    @property
+    def design_package_schema(self) -> Path:
+        return self.root / "schemas" / "design-package-v1.schema.json"
+
 
 def default_contract_paths() -> ContractPaths:
     return ContractPaths(root=Path(__file__).resolve().parents[4])

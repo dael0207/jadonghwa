@@ -9,6 +9,7 @@ import {
   type AnswerStatus,
   type AuditEvent,
   type Coverage,
+  type DesignPackage,
   type Interview,
   type NextQuestion,
   type Opportunity,
@@ -24,6 +25,7 @@ import {
   AuditPanel,
   M3Panel,
   M4Panel,
+  M5Panel,
   ProjectPanel,
   QuestionsPanel,
   WorkModelPanel,
@@ -44,6 +46,9 @@ export default function Page() {
   const [opportunityDraft, setOpportunityDraft] = useState<OpportunityDraft | null>(null)
   const [opportunities, setOpportunities] = useState<readonly Opportunity[]>([])
   const [latestOpportunity, setLatestOpportunity] = useState<Opportunity | null>(null)
+  const [designPackages, setDesignPackages] = useState<readonly DesignPackage[]>([])
+  const [latestDesignPackage, setLatestDesignPackage] = useState<DesignPackage | null>(null)
+  const [designPackageValidation, setDesignPackageValidation] = useState<ValidationResult | null>(null)
   const [readiness, setReadiness] = useState<Readiness | null>(null)
   const [opportunityDiff, setOpportunityDiff] = useState<OpportunityDiff | null>(null)
   const [auditEvents, setAuditEvents] = useState<readonly AuditEvent[]>([])
@@ -64,7 +69,7 @@ export default function Page() {
   }
 
   async function refreshDerived(next: Interview) {
-    const [events, history, coverageBody, nextBody, answerList, opportunityList] =
+    const [events, history, coverageBody, nextBody, answerList, opportunityList, packageList] =
       await Promise.all([
       api.get(`v1/projects/${next.project_id}/audit-events`).json<AuditEvent[]>(),
       api.get(`v1/projects/${next.project_id}/work-models`).json<WorkModel[]>(),
@@ -72,6 +77,7 @@ export default function Page() {
       api.get(`v1/interviews/${next.id}/next-question`).json<NextQuestion>(),
       api.get(`v1/interviews/${next.id}/answers`).json<Answer[]>(),
       api.get(`v1/projects/${next.project_id}/opportunities`).json<Opportunity[]>(),
+      api.get(`v1/projects/${next.project_id}/design-packages`).json<DesignPackage[]>(),
     ])
     setAuditEvents(events)
     setWorkModels(history)
@@ -80,6 +86,8 @@ export default function Page() {
     setAnswerHistory(answerList)
     setOpportunities(opportunityList)
     setLatestOpportunity(latestItem(opportunityList))
+    setDesignPackages(packageList)
+    setLatestDesignPackage(latestItem(packageList))
     if (opportunityList.length === 0) {
       setReadiness(null)
       setOpportunityDiff(null)
@@ -107,6 +115,9 @@ export default function Page() {
       setOpportunityDraft(null)
       setOpportunities([])
       setLatestOpportunity(null)
+      setDesignPackages([])
+      setLatestDesignPackage(null)
+      setDesignPackageValidation(null)
       setReadiness(null)
       setOpportunityDiff(null)
       setEvidenceText("")
@@ -258,6 +269,43 @@ export default function Page() {
     })
   }
 
+  async function createDesignPackage() {
+    if (!latestOpportunity) return
+    await run(async () => {
+      const created = await api
+        .post(`v1/opportunities/${latestOpportunity.id}/design-package`)
+        .json<DesignPackage>()
+      setLatestDesignPackage(created)
+      setDesignPackageValidation(null)
+      if (project) {
+        await refreshProjectM5(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(`Design Package ${created.id.slice(0, 8)} 초안을 생성했습니다.`)
+    })
+  }
+
+  async function validateDesignPackage() {
+    if (!latestDesignPackage) return
+    await run(async () => {
+      const validation = await api
+        .post(`v1/design-packages/${latestDesignPackage.id}/validate`)
+        .json<ValidationResult>()
+      setDesignPackageValidation(validation)
+      if (project) {
+        await refreshProjectM5(project.id)
+      }
+      if (interview) {
+        await refreshDerived(interview)
+      }
+      setMessage(
+        validation.valid ? "Design Package schema 검증을 통과했습니다." : "Design Package 검증 실패",
+      )
+    })
+  }
+
   async function validateOpportunity() {
     if (!latestOpportunity) return
     await run(async () => {
@@ -319,11 +367,17 @@ export default function Page() {
     }
   }
 
+  async function refreshProjectM5(projectId: string) {
+    const packageList = await api.get(`v1/projects/${projectId}/design-packages`).json<DesignPackage[]>()
+    setDesignPackages(packageList)
+    setLatestDesignPackage(latestItem(packageList))
+  }
+
   return (
     <main className="shell">
       <header className="header">
         <h1>Work Discovery AI</h1>
-        <p>M4 인터뷰와 opportunity scoring 작업 화면</p>
+        <p>M5 인터뷰, opportunity scoring, design package 작업 화면</p>
       </header>
       <div className="grid">
         <ProjectPanel
@@ -382,6 +436,15 @@ export default function Page() {
           onValidate={validateOpportunity}
           onReadiness={loadReadiness}
           onDiff={loadOpportunityDiff}
+        />
+        <M5Panel
+          project={project}
+          latestOpportunity={latestOpportunity}
+          designPackages={designPackages}
+          latestDesignPackage={latestDesignPackage}
+          validation={designPackageValidation}
+          onCreate={createDesignPackage}
+          onValidate={validateDesignPackage}
         />
         <AuditPanel events={auditEvents} />
       </div>

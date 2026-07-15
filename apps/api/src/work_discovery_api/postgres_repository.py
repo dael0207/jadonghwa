@@ -24,6 +24,7 @@ from work_discovery_api.models import (
     AnswerRevisionCreate,
     AuditEventRead,
     ConsentRequest,
+    DesignPackageRead,
     EvidenceCreate,
     InterviewRead,
     JsonObject,
@@ -44,6 +45,7 @@ from work_discovery_api.postgres_ops import (
 from work_discovery_api.postgres_rows import (
     answer_from_row,
     audit_from_row,
+    design_package_from_row,
     int_value,
     interview_from_row,
     one,
@@ -290,6 +292,13 @@ class PostgresRepository:
                 )
             return work_model_from_row(row)
 
+    def get_work_model_version(self, project_id: str, version: int) -> WorkModelRead:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            return work_model_from_row(
+                one(conn, sql.WORK_MODEL_BY_VERSION, (UUID(project_id), version)),
+            )
+
     def get_interview_work_model(self, interview_id: str) -> WorkModelRead:
         return self.get_work_model(self.get_interview(interview_id).project_id)
 
@@ -352,6 +361,53 @@ class PostgresRepository:
         with self._connect() as conn:
             rows = conn.execute(sql.OPPORTUNITIES_BY_PROJECT, (UUID(project_id),)).fetchall()
             return tuple(opportunity_from_row(row) for row in rows)
+
+    def save_design_package(
+        self,
+        project_id: str,
+        opportunity_id: str,
+        work_model_version: int,
+        payload: JsonObject,
+        valid: bool,
+    ) -> DesignPackageRead:
+        self.require_project(project_id)
+        self.get_opportunity(opportunity_id)
+        package_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_DESIGN_PACKAGE,
+                (
+                    package_id,
+                    UUID(project_id),
+                    UUID(opportunity_id),
+                    work_model_version,
+                    Jsonb(payload),
+                    valid,
+                ),
+            )
+            return design_package_from_row(one(conn, sql.DESIGN_PACKAGE, (package_id,)))
+
+    def get_design_package(self, package_id: str) -> DesignPackageRead:
+        with self._connect() as conn:
+            return design_package_from_row(one(conn, sql.DESIGN_PACKAGE, (UUID(package_id),)))
+
+    def list_project_design_packages(self, project_id: str) -> tuple[DesignPackageRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.DESIGN_PACKAGES_BY_PROJECT, (UUID(project_id),)).fetchall()
+            return tuple(design_package_from_row(row) for row in rows)
+
+    def list_opportunity_design_packages(
+        self,
+        opportunity_id: str,
+    ) -> tuple[DesignPackageRead, ...]:
+        self.get_opportunity(opportunity_id)
+        with self._connect() as conn:
+            rows = conn.execute(
+                sql.DESIGN_PACKAGES_BY_OPPORTUNITY,
+                (UUID(opportunity_id),),
+            ).fetchall()
+            return tuple(design_package_from_row(row) for row in rows)
 
     def transition_interview(self, interview_id: str, target: InterviewStatus) -> InterviewRead:
         current = self.get_interview(interview_id)

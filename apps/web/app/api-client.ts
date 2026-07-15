@@ -83,6 +83,16 @@ export type Opportunity = {
   readonly created_at: string
 }
 
+export type DesignPackage = {
+  readonly id: string
+  readonly project_id: string
+  readonly opportunity_id: string
+  readonly work_model_version: number
+  readonly payload: Record<string, unknown>
+  readonly schema_valid: boolean
+  readonly created_at: string
+}
+
 export type Readiness = {
   readonly project_id: string
   readonly interview_id: string | null

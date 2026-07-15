@@ -15,6 +15,7 @@ tags:
   - name: Transcripts
   - name: WorkModels
   - name: Opportunities
+  - name: DesignPackages
   - name: Blueprints
   - name: Artifacts
 paths:
@@ -343,6 +344,92 @@ paths:
                   type: object
                   additionalProperties: true
                   description: opportunity-v1.schema.json에 의해 검증되는 객체
+  /opportunities/{opportunityId}/design-package:
+    parameters:
+      - $ref: '#/components/parameters/OpportunityId'
+    post:
+      tags: [DesignPackages]
+      operationId: createDesignPackage
+      summary: readiness-gated G1 design package 초안 생성
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DesignPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /opportunities/{opportunityId}/design-packages:
+    parameters:
+      - $ref: '#/components/parameters/OpportunityId'
+    get:
+      tags: [DesignPackages]
+      operationId: listOpportunityDesignPackages
+      summary: opportunity 기준 design package 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DesignPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/design-packages:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [DesignPackages]
+      operationId: listProjectDesignPackages
+      summary: 프로젝트 기준 design package 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DesignPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /design-packages/{packageId}:
+    parameters:
+      - $ref: '#/components/parameters/DesignPackageId'
+    get:
+      tags: [DesignPackages]
+      operationId: getDesignPackage
+      summary: design package 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DesignPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /design-packages/{packageId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/DesignPackageId'
+    post:
+      tags: [DesignPackages]
+      operationId: validateDesignPackage
+      summary: design-package-v1 schema 검증
+      responses:
+        '200':
+          description: 검증 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaValidationResult'
+        '404':
+          $ref: '#/components/responses/Problem'
   /opportunities/{opportunityId}/select:
     parameters:
       - $ref: '#/components/parameters/OpportunityId'
@@ -477,6 +564,12 @@ components:
         type: string
     OpportunityId:
       name: opportunityId
+      in: path
+      required: true
+      schema:
+        type: string
+    DesignPackageId:
+      name: packageId
       in: path
       required: true
       schema:
@@ -718,6 +811,47 @@ components:
         understanding_gate:
           type: object
           additionalProperties: true
+    SchemaValidationResult:
+      type: object
+      additionalProperties: false
+      required: [valid, schema_name]
+      properties:
+        valid:
+          type: boolean
+        schema_name:
+          type: string
+        error:
+          type: [string, 'null']
+    DesignPackage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - project_id
+        - opportunity_id
+        - work_model_version
+        - payload
+        - schema_valid
+        - created_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        opportunity_id:
+          type: string
+        work_model_version:
+          type: integer
+          minimum: 1
+        payload:
+          type: object
+          additionalProperties: true
+          description: design-package-v1.schema.json에 의해 검증되는 객체
+        schema_valid:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
     JsonPatchOperation:
       type: object
       required: [op, path]

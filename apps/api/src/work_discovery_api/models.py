@@ -171,6 +171,18 @@ class OpportunityRead(BaseModel):
     created_at: datetime
 
 
+class DesignPackageRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    opportunity_id: str
+    work_model_version: int
+    payload: JsonObject
+    schema_valid: bool
+    created_at: datetime
+
+
 class OpportunityValidateRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
 

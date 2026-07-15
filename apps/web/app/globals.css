@@ -21,6 +21,8 @@ body {
   background: var(--surface-primary);
   color: var(--text-primary);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 button,
@@ -222,6 +224,47 @@ textarea {
   padding-top: 0;
 }
 
+.acceptance-list {
+  display: grid;
+  gap: 8px;
+}
+
+.acceptance-item {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--border-default);
+  padding-top: 8px;
+  word-break: keep-all;
+}
+
+.acceptance-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.acceptance-item dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.acceptance-item dl div {
+  display: grid;
+  align-items: start;
+  gap: 8px;
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.acceptance-item dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.acceptance-item dd {
+  margin: 0;
+}
+
 pre {
   max-height: 420px;
   overflow: auto;
@@ -244,6 +287,11 @@ pre {
   }
 
   .split {
+    grid-template-columns: 1fr;
+  }
+
+  .acceptance-item dl div {
+    gap: 2px;
     grid-template-columns: 1fr;
   }
 }

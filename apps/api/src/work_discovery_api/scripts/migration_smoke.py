@@ -16,6 +16,7 @@ REQUIRED_TABLES: frozenset[str] = frozenset(
         "answers",
         "work_models",
         "opportunity_drafts",
+        "design_packages",
         "audit_events",
         "deletion_jobs",
     },

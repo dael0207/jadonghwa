@@ -19,6 +19,7 @@ from work_discovery_api.models import (
     AnswerRevisionCreate,
     AuditEventRead,
     ConsentRequest,
+    DesignPackageRead,
     EvidenceCreate,
     InterviewRead,
     JsonObject,
@@ -57,6 +58,7 @@ class MemoryStore:
     answers: dict[str, list[AnswerRead]] = field(default_factory=dict)
     work_models: dict[str, list[WorkModelRead]] = field(default_factory=dict)
     opportunities: dict[str, list[OpportunityRead]] = field(default_factory=dict)
+    design_packages: dict[str, list[DesignPackageRead]] = field(default_factory=dict)
     audit_events: list[AuditEventRead] = field(default_factory=list)
 
     def create_project(self, name: str, workspace_name: str) -> ProjectRead:
@@ -272,6 +274,14 @@ class MemoryStore:
             created_at=utc_now(),
         )
 
+    def get_work_model_version(self, project_id: str, version: int) -> WorkModelRead:
+        self.require_project(project_id)
+        for model in self.work_models.get(project_id, ()):
+            if model.version == version:
+                return model
+        message = f"work model {project_id} version {version} not found"
+        raise KeyError(message)
+
     def get_interview_work_model(self, interview_id: str) -> WorkModelRead:
         record = self.require_interview(interview_id)
         return self.get_work_model(record.project_id)
@@ -333,6 +343,51 @@ class MemoryStore:
     def list_opportunities(self, project_id: str) -> tuple[OpportunityRead, ...]:
         self.require_project(project_id)
         return tuple(self.opportunities.get(project_id, ()))
+
+    def save_design_package(
+        self,
+        project_id: str,
+        opportunity_id: str,
+        work_model_version: int,
+        payload: JsonObject,
+        valid: bool,
+    ) -> DesignPackageRead:
+        self.require_project(project_id)
+        self.get_opportunity(opportunity_id)
+        package = DesignPackageRead(
+            id=str(uuid4()),
+            project_id=project_id,
+            opportunity_id=opportunity_id,
+            work_model_version=work_model_version,
+            payload=payload,
+            schema_valid=valid,
+            created_at=utc_now(),
+        )
+        self.design_packages.setdefault(project_id, []).append(package)
+        return package
+
+    def get_design_package(self, package_id: str) -> DesignPackageRead:
+        for packages in self.design_packages.values():
+            for package in packages:
+                if package.id == package_id:
+                    return package
+        message = f"design package {package_id} not found"
+        raise KeyError(message)
+
+    def list_project_design_packages(self, project_id: str) -> tuple[DesignPackageRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.design_packages.get(project_id, ()))
+
+    def list_opportunity_design_packages(
+        self,
+        opportunity_id: str,
+    ) -> tuple[DesignPackageRead, ...]:
+        opportunity = self.get_opportunity(opportunity_id)
+        return tuple(
+            package
+            for package in self.design_packages.get(opportunity.project_id, ())
+            if package.opportunity_id == opportunity_id
+        )
 
     def transition_interview(
         self,

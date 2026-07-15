@@ -5,6 +5,7 @@ import type {
   AnswerStatus,
   AuditEvent,
   Coverage,
+  DesignPackage,
   Interview,
   NextQuestion,
   Opportunity,
@@ -13,6 +14,7 @@ import type {
   Project,
   Question,
   Readiness,
+  ValidationResult,
   WorkModel,
 } from "./api-client"
 
@@ -328,10 +330,109 @@ export function M4Panel(props: M4PanelProps) {
   )
 }
 
+type M5PanelProps = {
+  readonly project: Project | null
+  readonly latestOpportunity: Opportunity | null
+  readonly designPackages: readonly DesignPackage[]
+  readonly latestDesignPackage: DesignPackage | null
+  readonly validation: ValidationResult | null
+  readonly onCreate: () => void
+  readonly onValidate: () => void
+}
+
+export function M5Panel(props: M5PanelProps) {
+  const acceptanceTests = acceptanceTestsFrom(props.latestDesignPackage)
+  return (
+    <section className="panel stack wide">
+      <h2>6. M5 Design package</h2>
+      <div className="cluster">
+        <button onClick={props.onCreate} disabled={!props.project || !props.latestOpportunity}>
+          Design Package 생성
+        </button>
+        <button onClick={props.onValidate} disabled={!props.latestDesignPackage}>
+          Package 검증
+        </button>
+      </div>
+      <div className="metric-grid">
+        <p className="metric">
+          <strong>Package type</strong>
+          <span className="status">{packageString(props.latestDesignPackage, "package_type")}</span>
+        </p>
+        <p className="metric">
+          <strong>Readiness</strong>
+          <span className="status">{packageString(props.latestDesignPackage, "readiness_result")}</span>
+        </p>
+        <p className="metric">
+          <strong>Packages</strong>
+          <span>{props.designPackages.length}</span>
+        </p>
+        <p className="metric">
+          <strong>Schema</strong>
+          <span className={props.latestDesignPackage?.schema_valid ? "success" : "status"}>
+            {props.latestDesignPackage?.schema_valid ? "valid" : "not generated"}
+          </span>
+        </p>
+      </div>
+      {props.validation ? (
+        <p className={props.validation.valid ? "success" : "error"}>
+          {props.validation.valid
+            ? `${props.validation.schema_name} 통과`
+            : (props.validation.error ?? "검증 실패")}
+        </p>
+      ) : null}
+      <div className="split equal">
+        <div className="stack list-block">
+          <strong>Package list</strong>
+          {props.designPackages.length === 0 ? (
+            <p className="muted">생성된 패키지가 없습니다.</p>
+          ) : null}
+          {props.designPackages.map((item) => (
+            <p className="list-row" key={item.id}>
+              <span className="status">{packageString(item, "package_type")}</span>
+              <span>{item.id.slice(0, 8)}</span>
+              <span>WM v{item.work_model_version}</span>
+            </p>
+          ))}
+        </div>
+        <div className="stack list-block">
+          <strong>Acceptance tests</strong>
+          {acceptanceTests.length === 0 ? <p className="muted">패키지 생성 후 표시됩니다.</p> : null}
+          <div className="acceptance-list">
+            {acceptanceTests.map((item) => (
+              <article className="acceptance-item" key={item.id}>
+                <strong>{item.scenario}</strong>
+                <dl>
+                  <div>
+                    <dt>Given</dt>
+                    <dd>{item.given}</dd>
+                  </div>
+                  <div>
+                    <dt>When</dt>
+                    <dd>{item.when}</dd>
+                  </div>
+                  <div>
+                    <dt>Then</dt>
+                    <dd>{item.then}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+      <pre>
+        {props.latestDesignPackage
+          ? JSON.stringify(props.latestDesignPackage.payload, null, 2)
+          : "생성된 패키지가 없습니다."}
+      </pre>
+    </section>
+  )
+}
+
 export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] }) {
   return (
     <section className="panel stack">
-      <h2>6. Audit events</h2>
+      <h2>7. Audit events</h2>
       {events.length === 0 ? <p className="muted">아직 표시할 감사 이벤트가 없습니다.</p> : null}
       {events.map((event) => (
         <p key={event.id}>
@@ -340,6 +441,67 @@ export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] 
       ))}
     </section>
   )
+}
+
+type AcceptanceTestSummary = {
+  readonly id: string
+  readonly scenario: string
+  readonly given: string
+  readonly when: string
+  readonly then: string
+}
+
+function acceptanceTestsFrom(packageItem: DesignPackage | null): AcceptanceTestSummary[] {
+  const value = packageItem?.payload["acceptance_tests"]
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.slice(0, 4).map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `acceptance-${index + 1}`,
+        scenario: item,
+        given: "패키지 초안",
+        when: "검증 실행",
+        then: "조건 충족",
+      }
+    }
+    const record = recordValue(item)
+    return {
+      id: stringField(record, "id", `acceptance-${index + 1}`),
+      scenario: stringField(record, "scenario", `Acceptance test ${index + 1}`),
+      given: stringField(record, "given", "패키지 초안"),
+      when: stringField(record, "when", "검증 실행"),
+      then: stringField(record, "then", "조건 충족"),
+    }
+  })
+}
+
+function packageString(packageItem: DesignPackage | null, key: string): string {
+  const value = packageItem?.payload[key]
+  if (typeof value === "string" && value.length > 0) {
+    return value
+  }
+  return "미생성"
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  if (isRecord(value)) {
+    return value
+  }
+  return {}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function stringField(record: Record<string, unknown>, key: string, fallback: string): string {
+  const value = record[key]
+  if (typeof value === "string" && value.length > 0) {
+    return value
+  }
+  return fallback
 }
 
 function ListBlock({ title, items }: { readonly title: string; readonly items: readonly string[] }) {

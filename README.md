@@ -35,6 +35,7 @@
 - `schemas/work-model-v1.schema.json`
 - `schemas/interview-state-v1.schema.json`
 - `schemas/opportunity-v1.schema.json`
+- `schemas/design-package-v1.schema.json`
 - `question-bank-v1.json`
 - `openapi-mvp.yaml`
 
@@ -54,7 +55,7 @@ npm install
 npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, diff, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, diff, M5 design package 생성/검증/JSON preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
 
 ## 저장소와 데이터베이스
 
@@ -70,7 +71,7 @@ npm install
 npm run migration:smoke
 ```
 
-## M1/M2/M3/M4 검증
+## M1/M2/M3/M4/M5 검증
 
 ```bash
 cd apps/api
@@ -141,6 +142,35 @@ M4에서도 의도적으로 구현하지 않는 것:
 - 외부 시스템 실행
 - 실제 자격증명 수집
 - 실제 G1 명세 생성
+
+## M5 G1 Design Package Draft
+
+M5는 M4의 schema-valid opportunity와 readiness 결과를 입력으로 받아 `schemas/design-package-v1.schema.json`을 통과하는 G1 design package 초안을 생성한다. `READY_FOR_DESIGN`은 `FULL_G1`, `ENABLE_FIRST`는 `ENABLEMENT_PREP` 패키지로 제한된다. `BLOCKED`와 `DISCOVERY_NEEDED`는 패키지 생성을 거부한다.
+
+M5 패키지는 아래 내용을 포함한다.
+
+- problem, target users, scope, non-goals
+- user flow, data contract, system assumptions
+- human oversight, risks and controls
+- acceptance tests, implementation backlog, open questions
+- source Work Model/opportunity/evidence refs
+
+추가 API:
+
+- `POST /v1/opportunities/{opportunity_id}/design-package`
+- `GET /v1/opportunities/{opportunity_id}/design-packages`
+- `GET /v1/projects/{project_id}/design-packages`
+- `GET /v1/design-packages/{package_id}`
+- `POST /v1/design-packages/{package_id}/validate`
+
+M5에서 생성하는 것은 G1 설계 패키지 초안이다. 실제 코드 생성, 외부 업무 시스템 실행, 자격증명 수집, 실제 G1 구현은 포함하지 않는다.
+
+M6 후보 작업:
+
+- design package export 포맷 정리
+- G1 명세 템플릿과 섹션별 품질 게이트 추가
+- READY_FOR_DESIGN 패키지의 reviewer feedback/revision 루프
+- 실제 LLM/STT 연결 전 provider boundary와 안전 정책 테스트 강화
 
 새 의존성:
 
