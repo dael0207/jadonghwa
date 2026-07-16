@@ -127,7 +127,37 @@ def test_recovery_loop_appends_opportunity_after_confirmed_rebuild() -> None:
     assert opportunities.status_code == 200
     assert len(opportunities.json()) == 2
     next_readiness = api.get(f"/v1/projects/{project_id}/readiness")
-    assert next_readiness.json()["result"] in {"ENABLE_FIRST", "READY_FOR_DESIGN"}
+    assert next_readiness.json()["result"] == "READY_FOR_DESIGN"
+
+    design_package = api.post(
+        f"/v1/opportunities/{second_opportunity['id']}/design-package",
+    )
+    assert design_package.status_code == 201
+    package_body = design_package.json()
+    assert package_body["payload"]["package_type"] == "FULL_G1"
+    blueprint = api.post(f"/v1/design-packages/{package_body['id']}/blueprint")
+    assert blueprint.status_code == 201
+    blueprint_body = blueprint.json()
+    assert blueprint_body["payload"]["blueprint_type"] == "FULL_G1_BLUEPRINT"
+    assert blueprint_body["export_ready"] is True
+    assert api.get(f"/v1/blueprints/{blueprint_body['id']}/export/json").status_code == 200
+    markdown = api.get(f"/v1/blueprints/{blueprint_body['id']}/export/markdown")
+    assert markdown.status_code == 200
+    assert "G1 Solution Blueprint" in markdown.text
+
+    evaluation = api.post(f"/v1/projects/{project_id}/evaluation-runs")
+    assert evaluation.status_code == 201
+    criteria = evaluation.json()["payload"]["criteria_results"]
+    blueprint_criterion = next(item for item in criteria if item["key"] == "blueprint-completeness")
+    assert blueprint_criterion["passed"] is True
+    release = api.post(f"/v1/projects/{project_id}/release-readiness")
+    assert release.status_code == 201
+    release_body = release.json()["payload"]
+    assert release_body["readiness_status"] == "READY"
+    export_check = next(
+        item for item in release_body["checklist"] if item["key"] == "export-readiness"
+    )
+    assert export_check["status"] == "PASS"
     audit = api.get(f"/v1/projects/{project_id}/audit-events")
     actions = {event["action"] for event in audit.json()}
     assert AuditAction.DISCOVERY_REOPENED in actions
@@ -139,8 +169,11 @@ def test_guidance_is_not_required_when_ready_for_design() -> None:
     api = TestClient(create_app(MemoryStore()))
     project_id, _interview_id = create_flow(api)
     payload = json.loads((ROOT / "examples" / "monthly-report-work-model.json").read_text("utf-8"))
-    payload["constraints"] = []
-    payload["exceptions"] = []
+    for item in payload["exceptions"]:
+        item["meta"]["state"] = "CORROBORATED"
+        item["meta"]["confidence"] = 0.9
+    payload["understanding_gate"]["open_material_gaps"] = []
+    payload["understanding_gate"]["result"] = "READY_FOR_ANALYSIS"
     validated = api.post(
         f"/v1/projects/{project_id}/work-model/validate",
         json={"payload": payload},

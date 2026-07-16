@@ -20,6 +20,7 @@ import type {
   ValidationResult,
   WorkModel,
 } from "./api-client"
+import { gateCalibrationFrom } from "./gate-calibration"
 
 export function answerStatus(value: string): AnswerStatus {
   if (value === "UNKNOWN" || value === "SKIPPED") {
@@ -255,7 +256,10 @@ type M4PanelProps = {
 
 export function M4Panel(props: M4PanelProps) {
   const canUseProject = Boolean(props.project)
-  const scoreEntries = Object.entries(props.readiness?.score_summary ?? {})
+  const calibration = gateCalibrationFrom(props.latestOpportunity, props.readiness)
+  const scoreEntries = Object.entries(props.readiness?.score_summary ?? {}).filter(
+    ([key]) => !["feasibility", "evidence_confidence", "risk"].includes(key),
+  )
   return (
     <section className="panel stack wide">
       <h2>5. M4 Opportunity scoring</h2>
@@ -276,15 +280,23 @@ export function M4Panel(props: M4PanelProps) {
       <div className="metric-grid">
         <p className="metric">
           <strong>Gate</strong>
-          <span className="status">{props.readiness?.result ?? "미분석"}</span>
+          <span className="status">{calibration.gate}</span>
         </p>
         <p className="metric">
-          <strong>G1 readiness</strong>
-          <span className="status">{props.readiness?.ready_for_g1 ? "READY" : "NOT READY"}</span>
+          <strong>Feasibility</strong>
+          <span>{calibration.feasibility}</span>
         </p>
         <p className="metric">
-          <strong>Opportunity versions</strong>
-          <span>{props.opportunities.length}</span>
+          <strong>Evidence confidence</strong>
+          <span>{calibration.evidenceConfidence}</span>
+        </p>
+        <p className="metric">
+          <strong>Residual risk</strong>
+          <span>{calibration.residualRisk}</span>
+        </p>
+        <p className="metric" data-testid="full-g1-path-status">
+          <strong>FULL_G1 path</strong>
+          <span className="status">{calibration.fullG1Status}</span>
         </p>
       </div>
       {scoreEntries.length > 0 ? (
@@ -297,8 +309,13 @@ export function M4Panel(props: M4PanelProps) {
           ))}
         </div>
       ) : null}
-      <div className="split equal">
+      <div className="split equal" data-testid="gate-calibration-panel">
+        <ListBlock title="Confirmed controls" items={calibration.confirmedControls} />
+        <ListBlock title="Unresolved risks" items={calibration.unresolvedItems} />
         <ListBlock title="Blocking reasons" items={props.readiness?.blocking_reasons ?? []} />
+        <ListBlock title="Safety policies (not scored)" items={calibration.safetyPolicies} />
+      </div>
+      <div className="split equal">
         <ListBlock title="Missing evidence" items={props.readiness?.missing_evidence ?? []} />
         <ListBlock title="Required follow-ups" items={props.readiness?.required_followups ?? []} />
       </div>
@@ -623,7 +640,7 @@ export function M8Panel(props: M8PanelProps) {
 
 export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] }) {
   return (
-    <section className="panel stack">
+    <section className="panel stack wide">
       <h2>10. Audit events</h2>
       {events.length === 0 ? <p className="muted">아직 표시할 감사 이벤트가 없습니다.</p> : null}
       {events.map((event) => (

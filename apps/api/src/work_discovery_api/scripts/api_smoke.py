@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import json
-
 from fastapi.testclient import TestClient
 
-from work_discovery_api.contracts import default_contract_paths
 from work_discovery_api.main import create_app
 from work_discovery_api.store import MemoryStore
 
@@ -138,7 +135,7 @@ def main() -> None:
     assert reanalyzed.json()["work_model_version"] > analyzed.json()["work_model_version"]
     recovered_readiness = client.get(f"/v1/projects/{project_id}/readiness")
     recovered_readiness.raise_for_status()
-    assert recovered_readiness.json()["result"] in {"ENABLE_FIRST", "READY_FOR_DESIGN"}
+    assert recovered_readiness.json()["result"] == "READY_FOR_DESIGN"
 
     audit = client.get(f"/v1/projects/{project_id}/audit-events")
     audit.raise_for_status()
@@ -153,48 +150,25 @@ def main() -> None:
     assert "DISCOVERY_REOPENED" in actions
     assert "DISCOVERY_REANALYZED" in actions
 
-    rich_project = client.post("/v1/projects", json={"name": "M5 rich monthly report"})
-    rich_project.raise_for_status()
-    rich_project_id = rich_project.json()["id"]
-    rich_interview = client.post(f"/v1/projects/{rich_project_id}/interviews")
-    rich_interview.raise_for_status()
-    rich_interview_id = rich_interview.json()["id"]
-    rich_consent = client.post(
-        f"/v1/interviews/{rich_interview_id}/consent",
-        json={"ai_processing": True, "data_processing": True},
+    design_package = client.post(
+        f"/v1/opportunities/{reanalyzed.json()['id']}/design-package",
     )
-    rich_consent.raise_for_status()
-    paths = default_contract_paths()
-    rich_payload = json.loads(
-        (paths.root / "examples" / "monthly-report-work-model.json").read_text("utf-8"),
-    )
-    rich_payload["constraints"] = []
-    rich_payload["exceptions"] = []
-    rich_validation = client.post(
-        f"/v1/projects/{rich_project_id}/work-model/validate",
-        json={"payload": rich_payload},
-    )
-    rich_validation.raise_for_status()
-    rich_analysis = client.post(f"/v1/projects/{rich_project_id}/opportunities/analyze")
-    rich_analysis.raise_for_status()
-    rich_package = client.post(
-        f"/v1/opportunities/{rich_analysis.json()['id']}/design-package",
-    )
-    rich_package.raise_for_status()
-    assert rich_package.json()["schema_valid"] is True
-    assert rich_package.json()["payload"]["package_type"] == "FULL_G1"
+    design_package.raise_for_status()
+    assert design_package.json()["schema_valid"] is True
+    assert design_package.json()["payload"]["package_type"] == "FULL_G1"
     package_validation = client.post(
-        f"/v1/design-packages/{rich_package.json()['id']}/validate",
+        f"/v1/design-packages/{design_package.json()['id']}/validate",
     )
     package_validation.raise_for_status()
     assert package_validation.json()["valid"] is True
-    packages = client.get(f"/v1/projects/{rich_project_id}/design-packages")
+    packages = client.get(f"/v1/projects/{project_id}/design-packages")
     packages.raise_for_status()
     assert len(packages.json()) == 1
-    blueprint = client.post(f"/v1/design-packages/{rich_package.json()['id']}/blueprint")
+    blueprint = client.post(f"/v1/design-packages/{design_package.json()['id']}/blueprint")
     blueprint.raise_for_status()
     assert blueprint.json()["schema_valid"] is True
     assert blueprint.json()["export_ready"] is True
+    assert blueprint.json()["payload"]["blueprint_type"] == "FULL_G1_BLUEPRINT"
     blueprint_validation = client.post(
         f"/v1/blueprints/{blueprint.json()['id']}/validate",
     )
@@ -205,17 +179,19 @@ def main() -> None:
     blueprint_markdown = client.get(f"/v1/blueprints/{blueprint.json()['id']}/export/markdown")
     blueprint_markdown.raise_for_status()
     assert "G1 Solution Blueprint" in blueprint_markdown.text
-    evaluation = client.post(f"/v1/projects/{rich_project_id}/evaluation-runs")
+    evaluation = client.post(f"/v1/projects/{project_id}/evaluation-runs")
     evaluation.raise_for_status()
     assert evaluation.json()["schema_valid"] is True
     assert evaluation.json()["payload"]["item_count"] == 24
+    assert evaluation.json()["payload"]["score_summary"]["overall_passed"] is True
     evaluation_validation = client.post(
         f"/v1/evaluation-runs/{evaluation.json()['id']}/validate",
     )
     evaluation_validation.raise_for_status()
-    release = client.post(f"/v1/projects/{rich_project_id}/release-readiness")
+    release = client.post(f"/v1/projects/{project_id}/release-readiness")
     release.raise_for_status()
     assert release.json()["schema_valid"] is True
+    assert release.json()["payload"]["readiness_status"] == "READY"
     release_validation = client.post(
         f"/v1/release-readiness/{release.json()['id']}/validate",
     )

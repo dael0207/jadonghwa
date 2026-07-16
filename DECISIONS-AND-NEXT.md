@@ -11,6 +11,7 @@
 - M7: deterministic evaluation run, 24개 fixture corpus, schema/audit 검증 완료
 - M8: limited release readiness report, readiness checklist, 웹 preview/validate 패널 완료
 - M4/M5 Recovery: `DISCOVERY_NEEDED`/`BLOCKED` guidance, recovery 전용 reopen, 추가 증거 기반 Work Model 재생성, Playback 재승인, append-only reanalysis, M5 웹 gate 완료
+- M8.1: 제품 안전 정책과 실제 업무 위험 분리, 통제/미해결 위험·예외·권한 분류, residual-risk gate, 정상 Recovery의 FULL_G1~M8 READY 경로 완료
 - 다음 G2 후보: 제한된 starter scaffold template 연구, reviewer feedback/revision loop, 실제 파일럿 QA 운영 기준을 검토한다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
 
 ## 1. 이번 설계에서 확정한 사항

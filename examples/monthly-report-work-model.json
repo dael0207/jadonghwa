@@ -784,8 +784,31 @@
     {
       "id": "constraint-confidential-data",
       "category": "SECURITY",
+      "constraint_kind": "INHERENT_RISK",
       "statement": "거래처별 매출 데이터는 회사 외부에 공개할 수 없다.",
       "hard": true,
+      "control": "회사 내부 저장소와 제한된 접근 권한으로만 데이터를 처리한다.",
+      "residual_level": 1,
+      "meta": {
+        "state": "CONFIRMED",
+        "confidence": 0.9,
+        "source_refs": [
+          "answer-001"
+        ],
+        "validated_by": [
+          "user-001"
+        ],
+        "last_validated_at": "2026-07-14T12:00:00+09:00"
+      }
+    },
+    {
+      "id": "constraint-report-approval",
+      "category": "AUTHORITY",
+      "constraint_kind": "AUTHORITY_BOUNDARY",
+      "statement": "업무 담당자가 이상 항목을 판단하고 팀장이 최종 보고서를 승인한다.",
+      "hard": true,
+      "control": "담당자 판단과 팀장 최종 승인을 자동화 경계 밖에 유지한다.",
+      "residual_level": 1,
       "meta": {
         "state": "CONFIRMED",
         "confidence": 0.9,

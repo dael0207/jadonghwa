@@ -38,8 +38,18 @@ def rich_work_model_payload() -> dict[str, object]:
 
 def ready_work_model_payload() -> dict[str, object]:
     payload = rich_work_model_payload()
-    payload["constraints"] = []
-    payload["exceptions"] = []
+    exceptions = payload["exceptions"]
+    assert isinstance(exceptions, list)
+    for item in exceptions:
+        assert isinstance(item, dict)
+        meta = item["meta"]
+        assert isinstance(meta, dict)
+        meta["state"] = "CORROBORATED"
+        meta["confidence"] = 0.9
+    gate = payload["understanding_gate"]
+    assert isinstance(gate, dict)
+    gate["open_material_gaps"] = []
+    gate["result"] = "READY_FOR_ANALYSIS"
     return payload
 
 

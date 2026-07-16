@@ -136,16 +136,19 @@ def build_decisions(facts: RecoveryFacts, meta: JsonObject) -> list[JsonObject]:
 
 
 def build_exceptions(facts: RecoveryFacts, meta: JsonObject) -> list[JsonObject]:
-    return [
-        {
-            "id": f"exception-recovery-{index:02d}",
-            "condition": statement[:1000],
-            "handling": statement[:2000],
-            "impact": "MEDIUM",
-            "meta": meta,
-        }
-        for index, statement in enumerate(facts.values.get("exceptions", ()), start=1)
-    ]
+    exceptions: list[JsonObject] = []
+    for index, statement in enumerate(facts.values.get("exceptions", ()), start=1):
+        condition, handling = exception_contract(statement)
+        exceptions.append(
+            {
+                "id": f"exception-recovery-{index:02d}",
+                "condition": condition[:1000],
+                "handling": handling[:2000],
+                "impact": "MEDIUM",
+                "meta": meta,
+            },
+        )
+    return exceptions
 
 
 def build_metrics(facts: RecoveryFacts, meta: JsonObject) -> list[JsonObject]:
@@ -170,13 +173,24 @@ def build_authority_constraints(facts: RecoveryFacts, meta: JsonObject) -> list[
     return [
         {
             "id": f"constraint-recovery-authority-{index:02d}",
-            "category": "ORGANIZATIONAL",
+            "category": "AUTHORITY",
+            "constraint_kind": "AUTHORITY_BOUNDARY",
             "statement": statement[:2000],
             "hard": True,
+            "control": "명시된 승인자와 업무 담당자가 최종 판단 및 예외 처리를 유지한다.",
+            "residual_level": 1,
             "meta": meta,
         }
         for index, statement in enumerate(facts.values.get("authority", ()), start=1)
     ]
+
+
+def exception_contract(statement: str) -> tuple[str, str]:
+    for separator in ("이면", "일 때", "인 경우", "는 "):
+        condition, marker, handling = statement.partition(separator)
+        if marker and condition.strip() and handling.strip():
+            return condition.strip(), handling.strip()
+    return statement.strip(), statement.strip()
 
 
 def canonical_key(label: str) -> str | None:

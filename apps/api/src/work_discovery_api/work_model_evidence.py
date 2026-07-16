@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from work_discovery_api.models import JsonObject, JsonValue, WorkModelRead
+from work_discovery_api.risk_assessment import RiskAssessment, assess_risk
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,9 +28,9 @@ class EvidenceProfile:
     pain_count: int
     pain_severity_total: int
     metric_count: int
-    risk_constraint_count: int
-    authority_constraint_count: int
+    risk: RiskAssessment
     evidence_refs: tuple[str, ...]
+    has_source_refs: bool
     source_link_rate: float
     confirmed_claim_rate: float
     open_contradiction_count: int
@@ -51,17 +52,15 @@ def evidence_profile(model: WorkModelRead) -> EvidenceProfile:
     exceptions = object_list(payload.get("exceptions"))
     pains = object_list(payload.get("pain_points"))
     metrics = object_list(payload.get("metrics"))
-    constraints = object_list(payload.get("constraints"))
     evidence_summary = object_value(payload.get("evidence_summary"))
     gate = object_value(payload.get("understanding_gate"))
     process = processes[0] if processes else {}
     process_id = string_value(process.get("id"), "process-discovered-work")
-    risk_categories = tuple(
-        string_value(item.get("category"), "").upper()
-        for item in constraints
-        if string_value(item.get("category"), "")
-    )
     evidence_refs = collected_source_refs(payload)
+    open_contradictions = int_value(
+        evidence_summary.get("open_contradiction_count"),
+        0,
+    )
     return EvidenceProfile(
         model_id=string_value(payload.get("model_id"), f"wm-{model.project_id}"),
         project_id=model.project_id,
@@ -83,17 +82,12 @@ def evidence_profile(model: WorkModelRead) -> EvidenceProfile:
         pain_count=len(pains),
         pain_severity_total=sum(int_value(item.get("severity"), 2) for item in pains),
         metric_count=len(metrics),
-        risk_constraint_count=risk_constraint_count(risk_categories),
-        authority_constraint_count=sum(
-            1 for category in risk_categories if category in {"AUTHORITY", "LEGAL", "FINANCIAL"}
-        ),
+        risk=assess_risk(payload, open_contradictions),
         evidence_refs=evidence_refs or (process_id,),
+        has_source_refs=bool(evidence_refs),
         source_link_rate=float_value(evidence_summary.get("source_link_rate"), 0),
         confirmed_claim_rate=float_value(evidence_summary.get("confirmed_claim_rate"), 0),
-        open_contradiction_count=int_value(
-            evidence_summary.get("open_contradiction_count"),
-            0,
-        ),
+        open_contradiction_count=open_contradictions,
         epistemic_coverage=float_value(gate.get("epistemic_coverage"), 0),
         operational_readiness=float_value(gate.get("operational_readiness"), 0),
         risk_clarity=float_value(gate.get("risk_clarity"), 0),
@@ -137,11 +131,6 @@ def clear_system_count(systems: tuple[JsonObject, ...]) -> int:
         if string_value(item.get("access_method"), "").upper() not in {"", "UNKNOWN"}
         and string_value(item.get("stability"), "").upper() not in {"", "UNKNOWN"}
     )
-
-
-def risk_constraint_count(categories: tuple[str, ...]) -> int:
-    risky = {"PRIVACY", "SECURITY", "LEGAL", "FINANCIAL", "SAFETY", "AUTHORITY", "QUALITY"}
-    return sum(1 for category in categories if category in risky)
 
 
 def collected_source_refs(payload: JsonObject) -> tuple[str, ...]:

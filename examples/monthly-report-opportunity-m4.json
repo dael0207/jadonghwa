@@ -39,6 +39,18 @@
     "result": "ENABLE_FIRST",
     "blocked_reasons": ["Risk requires stronger human oversight before design"]
   },
+  "risk_profile": {
+    "safety_policy_constraints": ["External execution and credential collection remain out of scope."],
+    "inherent_risk_constraints": ["Confidential transaction data must remain inside the company."],
+    "unresolved_risk_constraints": [],
+    "controlled_risk_constraints": ["Confidential data remains internal. Control: restricted access and encrypted storage."],
+    "unresolved_exceptions": ["ERP export failure handling requires stronger source evidence."],
+    "controlled_exceptions": [],
+    "authority_boundary_confirmed": true,
+    "authority_controls": ["The report owner retains anomaly decisions and final approval."],
+    "open_contradictions": 0,
+    "residual_risk": 3
+  },
   "human_role": {
     "retained_responsibilities": [
       "Confirm source evidence",

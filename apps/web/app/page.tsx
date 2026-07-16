@@ -564,52 +564,60 @@ export default function Page() {
         <p>M8 인터뷰, blueprint, evaluation, release readiness 작업 화면</p>
       </header>
       <div className="grid">
-        <ProjectPanel
-          projectName={projectName}
-          project={project}
-          interview={interview}
-          message={message}
-          error={error}
-          onProjectName={setProjectName}
-          onCreateFlow={createFlow}
-          onGrantConsent={grantConsent}
-          onRevokeConsent={revokeConsent}
-        />
-        <QuestionsPanel
-          interview={interview}
-          questions={questions}
-          answers={answers}
-          statuses={statuses}
-          onAnswer={(questionId, text) => setAnswers((current) => ({ ...current, [questionId]: text }))}
-          onStatus={(questionId, status) => setStatuses((current) => ({ ...current, [questionId]: status }))}
-          onSubmitAnswer={submitAnswer}
-        />
-        <WorkModelPanel
-          interview={interview}
-          workModel={workModel}
-          onBuildWorkModel={buildWorkModel}
-          onConfirmPlayback={confirmPlayback}
-          onRejectPlayback={rejectPlayback}
-        />
-        <M3Panel
-          interview={interview}
-          answerHistory={answerHistory}
-          evidenceText={evidenceText}
-          revisionAnswerId={revisionAnswerId}
-          revisionText={revisionText}
-          coverage={coverage}
-          nextQuestion={nextQuestion}
-          opportunityDraft={opportunityDraft}
-          workModels={workModels}
-          onEvidenceText={setEvidenceText}
-          onRevisionAnswerId={setRevisionAnswerId}
-          onRevisionText={setRevisionText}
-          onAddEvidence={addEvidence}
-          onReviseAnswer={reviseAnswer}
-          onResumeModelBuilding={resumeModelBuilding}
-          onRefreshCoverage={refreshM3}
-          onLoadOpportunity={loadOpportunityDraft}
-        />
+        <div className="workbench-lane">
+          <ProjectPanel
+            projectName={projectName}
+            project={project}
+            interview={interview}
+            message={message}
+            error={error}
+            onProjectName={setProjectName}
+            onCreateFlow={createFlow}
+            onGrantConsent={grantConsent}
+            onRevokeConsent={revokeConsent}
+          />
+          <WorkModelPanel
+            interview={interview}
+            workModel={workModel}
+            onBuildWorkModel={buildWorkModel}
+            onConfirmPlayback={confirmPlayback}
+            onRejectPlayback={rejectPlayback}
+          />
+          <M3Panel
+            interview={interview}
+            answerHistory={answerHistory}
+            evidenceText={evidenceText}
+            revisionAnswerId={revisionAnswerId}
+            revisionText={revisionText}
+            coverage={coverage}
+            nextQuestion={nextQuestion}
+            opportunityDraft={opportunityDraft}
+            workModels={workModels}
+            onEvidenceText={setEvidenceText}
+            onRevisionAnswerId={setRevisionAnswerId}
+            onRevisionText={setRevisionText}
+            onAddEvidence={addEvidence}
+            onReviseAnswer={reviseAnswer}
+            onResumeModelBuilding={resumeModelBuilding}
+            onRefreshCoverage={refreshM3}
+            onLoadOpportunity={loadOpportunityDraft}
+          />
+        </div>
+        <div className="workbench-lane">
+          <QuestionsPanel
+            interview={interview}
+            questions={questions}
+            answers={answers}
+            statuses={statuses}
+            onAnswer={(questionId, text) =>
+              setAnswers((current) => ({ ...current, [questionId]: text }))
+            }
+            onStatus={(questionId, status) =>
+              setStatuses((current) => ({ ...current, [questionId]: status }))
+            }
+            onSubmitAnswer={submitAnswer}
+          />
+        </div>
         <M4Panel
           project={project}
           opportunities={opportunities}

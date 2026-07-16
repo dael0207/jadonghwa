@@ -106,6 +106,13 @@ textarea {
   grid-template-columns: minmax(min(380px, 100%), 0.9fr) minmax(min(560px, 100%), 1.4fr);
 }
 
+.workbench-lane {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  align-content: start;
+}
+
 .panel {
   border: 1px solid var(--border-default);
   border-radius: 8px;
@@ -116,6 +123,7 @@ textarea {
 .panel p {
   overflow-wrap: break-word;
   word-break: keep-all;
+  text-wrap: pretty;
 }
 
 .panel h2 {
@@ -276,7 +284,8 @@ pre {
   max-height: 420px;
   overflow: auto;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
   border: 1px solid var(--border-default);
   border-radius: 6px;
   background: var(--surface-subtle);

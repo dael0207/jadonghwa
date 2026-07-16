@@ -1131,7 +1131,7 @@ components:
         payload:
           type: object
           additionalProperties: true
-          description: opportunity-v1.schema.json에 의해 검증되는 객체
+          description: opportunity-v1.schema.json에 의해 검증되며 M8.1 risk_profile을 포함하는 객체
         schema_valid:
           type: boolean
         created_at:

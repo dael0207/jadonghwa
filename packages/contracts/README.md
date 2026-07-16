@@ -1,6 +1,6 @@
 # Shared Contracts
 
-M0~M8 keep the canonical contract files at the repository root:
+M0~M8.1 keep the canonical contract files at the repository root. M8.1 extends Work Model constraints with explicit risk treatment fields and requires the Opportunity `risk_profile` used by the calibrated residual-risk gate:
 
 - `schemas/work-model-v1.schema.json`
 - `schemas/interview-state-v1.schema.json`

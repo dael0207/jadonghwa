@@ -154,6 +154,7 @@ class DeterministicWorkModelBuilder:
                 {
                     "id": "constraint-no-external-execution",
                     "category": "SECURITY",
+                    "constraint_kind": "SAFETY_POLICY",
                     "statement": "M2는 외부 시스템 실행과 실제 자격증명 수집을 하지 않는다.",
                     "hard": True,
                     "meta": meta,

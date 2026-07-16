@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from work_discovery_api.opportunity_explanation import ScoreNarrative, build_score_explanation
 from work_discovery_api.work_model_evidence import EvidenceProfile, unique_strings
 
 
@@ -20,6 +21,20 @@ class ScoreDecision:
     recommendation_mode: str
     recommendation_title: str
     explanation: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class GateMetrics:
+    feasibility: int
+    residual_risk: int
+    evidence_confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreSnapshot:
+    value: int
+    metrics: GateMetrics
+    gate_result: str
 
 
 def score_profile(profile: EvidenceProfile) -> ScoreDecision:
@@ -45,15 +60,7 @@ def score_profile(profile: EvidenceProfile) -> ScoreDecision:
         0,
         100,
     )
-    risk = clamp_int(
-        1
-        + profile.risk_constraint_count
-        + profile.authority_constraint_count
-        + min(profile.exception_count, 1)
-        + (1 if profile.open_contradiction_count > 0 else 0),
-        0,
-        4,
-    )
+    risk = profile.risk.residual_risk
     evidence_confidence = clamp_float(
         0.2
         + profile.source_link_rate * 0.25
@@ -68,14 +75,24 @@ def score_profile(profile: EvidenceProfile) -> ScoreDecision:
         1,
     )
     oversight = clamp_int(
-        1 + risk + min(profile.exception_count, 1) - min(profile.rule_count, 1),
+        1
+        + risk
+        + min(len(profile.risk.unresolved_exceptions), 1)
+        - min(profile.rule_count, 1),
         0,
         5,
     )
-    missing = missing_evidence(profile, feasibility, evidence_confidence)
-    followups = required_followups(profile, risk, missing)
-    gate = gate_result(feasibility, risk, evidence_confidence)
-    portfolio = portfolio_class(value, feasibility, risk, evidence_confidence, gate)
+    metrics = GateMetrics(
+        feasibility=feasibility,
+        residual_risk=risk,
+        evidence_confidence=evidence_confidence,
+    )
+    gate = gate_result(profile, metrics)
+    snapshot = ScoreSnapshot(value=value, metrics=metrics, gate_result=gate)
+    missing = missing_evidence(profile, metrics)
+    followups = required_followups(profile, missing)
+    portfolio = portfolio_class(snapshot)
+    blocking = blocked_reasons(profile, metrics)
     return ScoreDecision(
         value=value,
         feasibility=feasibility,
@@ -84,12 +101,22 @@ def score_profile(profile: EvidenceProfile) -> ScoreDecision:
         oversight=oversight,
         portfolio_class=portfolio,
         gate_result=gate,
-        blocked_reasons=blocked_reasons(feasibility, risk, evidence_confidence),
+        blocked_reasons=blocking,
         missing_evidence=missing,
         required_followups=followups,
         recommendation_mode=recommendation_mode(portfolio, gate, profile),
         recommendation_title=recommendation_title(portfolio, gate),
-        explanation=score_explanation(profile, value, feasibility, risk, evidence_confidence),
+        explanation=build_score_explanation(
+            profile,
+            ScoreNarrative(
+                value=value,
+                feasibility=feasibility,
+                residual_risk=risk,
+                evidence_confidence=evidence_confidence,
+                gate_result=gate,
+            ),
+            blocking,
+        ),
     )
 
 
@@ -101,8 +128,7 @@ def unknown_penalty(profile: EvidenceProfile) -> int:
 
 def missing_evidence(
     profile: EvidenceProfile,
-    feasibility: int,
-    evidence_confidence: float,
+    metrics: GateMetrics,
 ) -> tuple[str, ...]:
     missing: list[str] = list(profile.open_material_gaps)
     if profile.structured_artifact_count == 0:
@@ -113,57 +139,109 @@ def missing_evidence(
         missing.append("Decision rules")
     if profile.exception_count == 0:
         missing.append("Exception cases")
-    if feasibility < 60:
+    if profile.risk.unresolved_exceptions:
+        missing.append("Exception handling with corroborated source references")
+    if profile.risk.unresolved_risk_constraints:
+        missing.append("Controls for inherent workflow risks")
+    if not profile.risk.authority_boundary_confirmed:
+        missing.append("Confirmed human approval and authority boundary")
+    if profile.risk.open_contradictions > 0:
+        missing.append("Open contradiction resolution")
+    if not profile.has_source_refs:
+        missing.append("Source references")
+    if metrics.feasibility < 60:
         missing.append("Implementation feasibility evidence")
-    if evidence_confidence < 0.75:
+    if metrics.evidence_confidence < 0.75:
         missing.append("Confirmed evidence coverage")
     return tuple(unique_strings(missing))
 
 
 def required_followups(
     profile: EvidenceProfile,
-    risk: int,
     missing: tuple[str, ...],
 ) -> tuple[str, ...]:
     followups = [f"Collect evidence for: {item}" for item in missing[:4]]
-    if risk >= 3:
+    if profile.risk.residual_risk >= 3:
         followups.append("Clarify human approval and authority boundary")
     if profile.metric_count == 0:
         followups.append("Capture rough frequency, volume, and rework estimates")
     return tuple(unique_strings(followups))
 
 
-def gate_result(feasibility: int, risk: int, evidence_confidence: float) -> str:
-    if risk >= 4 and evidence_confidence < 0.8:
+def gate_result(profile: EvidenceProfile, metrics: GateMetrics) -> str:
+    if metrics.residual_risk >= 4 and (
+        metrics.evidence_confidence < 0.8 or profile.risk.open_contradictions > 0
+    ):
         return "BLOCKED"
-    if feasibility >= 70 and evidence_confidence >= 0.75 and risk <= 2:
+    if (
+        metrics.feasibility >= 70
+        and metrics.evidence_confidence >= 0.75
+        and metrics.residual_risk <= 2
+        and ready_requirements_met(profile)
+    ):
         return "READY_FOR_DESIGN"
-    if feasibility >= 50 and evidence_confidence >= 0.6 and risk <= 3:
+    if (
+        metrics.feasibility >= 50
+        and metrics.evidence_confidence >= 0.6
+        and metrics.residual_risk <= 3
+    ):
         return "ENABLE_FIRST"
     return "DISCOVERY_NEEDED"
 
 
-def portfolio_class(value: int, feasibility: int, risk: int, confidence: float, gate: str) -> str:
-    if gate == "BLOCKED":
-        return "DO_NOT_AUTOMATE" if risk >= 4 else "NO_BUILD"
-    if risk >= 3:
+def ready_requirements_met(profile: EvidenceProfile) -> bool:
+    return (
+        profile.structured_artifact_count > 0
+        and profile.clear_system_count > 0
+        and profile.rule_count > 0
+        and profile.exception_count > 0
+        and not profile.risk.unresolved_exceptions
+        and not profile.risk.unresolved_risk_constraints
+        and profile.risk.authority_boundary_confirmed
+        and profile.has_source_refs
+        and profile.risk.open_contradictions == 0
+        and not profile.open_material_gaps
+    )
+
+
+def portfolio_class(snapshot: ScoreSnapshot) -> str:
+    metrics = snapshot.metrics
+    if snapshot.gate_result == "BLOCKED":
+        return "DO_NOT_AUTOMATE" if metrics.residual_risk >= 4 else "NO_BUILD"
+    if metrics.residual_risk >= 3:
         return "HUMAN_CONTROLLED"
-    if gate == "DISCOVERY_NEEDED" or feasibility < 70 or confidence < 0.75:
+    if (
+        snapshot.gate_result == "DISCOVERY_NEEDED"
+        or metrics.feasibility < 70
+        or metrics.evidence_confidence < 0.75
+    ):
         return "ENABLE_FIRST"
-    if value >= 75:
+    if snapshot.value >= 75:
         return "STRATEGIC_BET"
     return "QUICK_WIN"
 
 
-def blocked_reasons(feasibility: int, risk: int, evidence_confidence: float) -> tuple[str, ...]:
+def blocked_reasons(profile: EvidenceProfile, metrics: GateMetrics) -> tuple[str, ...]:
     reasons: list[str] = []
-    if feasibility < 70:
+    if metrics.feasibility < 70:
         reasons.append("Feasibility evidence is below G1 readiness threshold")
-    if evidence_confidence < 0.75:
+    if metrics.evidence_confidence < 0.75:
         reasons.append("Evidence confidence is below G1 readiness threshold")
-    if risk >= 3:
-        reasons.append("Risk requires stronger human oversight before design")
-    return tuple(reasons)
+    if metrics.residual_risk >= 3:
+        reasons.append("Residual risk exceeds the G1 readiness threshold")
+    if profile.risk.unresolved_risk_constraints:
+        reasons.append("Inherent workflow risks do not have confirmed controls")
+    if profile.risk.unresolved_exceptions:
+        reasons.append("Exception handling is not corroborated by source evidence")
+    if not profile.risk.authority_boundary_confirmed:
+        reasons.append("Human approval and final decision authority are not confirmed")
+    if profile.risk.open_contradictions > 0:
+        reasons.append("Open evidence contradictions must be resolved")
+    if profile.exception_count == 0:
+        reasons.append("At least one exception case and handling path must be documented")
+    if not profile.has_source_refs:
+        reasons.append("Source references are required for design readiness")
+    return tuple(unique_strings(reasons))
 
 
 def recommendation_mode(portfolio: str, gate: str, profile: EvidenceProfile) -> str:
@@ -188,28 +266,6 @@ def recommendation_title(portfolio: str, gate: str) -> str:
     if portfolio == "HUMAN_CONTROLLED":
         return "Assist with human-controlled execution"
     return "Continue discovery before automation design"
-
-
-def score_explanation(
-    profile: EvidenceProfile,
-    value: int,
-    feasibility: int,
-    risk: int,
-    evidence_confidence: float,
-) -> tuple[str, ...]:
-    return (
-        f"Value {value}: steps={profile.step_count}, manual_steps={profile.manual_step_count}, "
-        f"pain_points={profile.pain_count}, metrics={profile.metric_count}.",
-        f"Feasibility {feasibility}: structured_artifacts={profile.structured_artifact_count}, "
-        f"clear_systems={profile.clear_system_count}, rules={profile.rule_count}.",
-        f"Risk {risk}: risk_constraints={profile.risk_constraint_count}, "
-        f"authority_constraints={profile.authority_constraint_count}, "
-        f"exceptions={profile.exception_count}.",
-        f"Evidence confidence {round(evidence_confidence, 2)}: source_link_rate="
-        f"{profile.source_link_rate}, confirmed_claim_rate={profile.confirmed_claim_rate}, "
-        f"open_gaps={len(profile.open_material_gaps)}.",
-        "Oversight: derived from risk and exception handling needs.",
-    )
 
 
 def clamp_int(value: int, minimum: int, maximum: int) -> int:

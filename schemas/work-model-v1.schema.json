@@ -459,10 +459,16 @@
         "id": { "$ref": "#/$defs/id" },
         "category": {
           "type": "string",
-          "enum": ["LEGAL", "PRIVACY", "SECURITY", "BUDGET", "TIME", "TECHNICAL", "ORGANIZATIONAL", "ACCESS", "OTHER"]
+          "enum": ["LEGAL", "PRIVACY", "SECURITY", "FINANCIAL", "SAFETY", "AUTHORITY", "QUALITY", "BUDGET", "TIME", "TECHNICAL", "ORGANIZATIONAL", "ACCESS", "OTHER"]
         },
         "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
         "hard": { "type": "boolean" },
+        "constraint_kind": {
+          "type": "string",
+          "enum": ["SAFETY_POLICY", "INHERENT_RISK", "AUTHORITY_BOUNDARY", "OPERATIONAL"]
+        },
+        "control": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "residual_level": { "type": "integer", "minimum": 0, "maximum": 4 },
         "meta": { "$ref": "#/$defs/assertionMeta" }
       }
     },

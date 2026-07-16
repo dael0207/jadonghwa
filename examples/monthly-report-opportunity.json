@@ -72,6 +72,18 @@
       "ERP API 또는 안정적인 파일 내보내기 형식을 확인해야 한다."
     ]
   },
+  "risk_profile": {
+    "safety_policy_constraints": ["External execution and credential collection remain out of scope."],
+    "inherent_risk_constraints": ["Confidential transaction data must remain inside the company."],
+    "unresolved_risk_constraints": [],
+    "controlled_risk_constraints": ["Confidential data remains internal. Control: restricted access and encrypted storage."],
+    "unresolved_exceptions": [],
+    "controlled_exceptions": ["ERP export failure. Handling: manual re-export by the ERP operator."],
+    "authority_boundary_confirmed": true,
+    "authority_controls": ["The report owner reviews anomalies and management approves the final report."],
+    "open_contradictions": 0,
+    "residual_risk": 2
+  },
   "human_role": {
     "retained_responsibilities": [
       "이상 증감 원인 최종 확인",

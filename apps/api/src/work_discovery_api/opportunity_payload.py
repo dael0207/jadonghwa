@@ -37,6 +37,7 @@ def build_opportunity_payload(profile: EvidenceProfile, decision: ScoreDecision)
             "result": decision.gate_result,
             "blocked_reasons": list(decision.blocked_reasons),
         },
+        "risk_profile": build_risk_profile(profile),
         "human_role": {
             "retained_responsibilities": human_responsibilities(decision),
             "approval_points": approval_points(decision),
@@ -140,8 +141,10 @@ def approval_points(decision: ScoreDecision) -> list[str]:
 
 
 def exception_handling(profile: EvidenceProfile, decision: ScoreDecision) -> list[str]:
+    if profile.risk.controlled_exceptions and not profile.risk.unresolved_exceptions:
+        return list(profile.risk.controlled_exceptions)
     if profile.exception_count > 0:
-        return ["Route known exceptions to manual review", "Track unresolved exception categories"]
+        return ["Route unresolved exceptions to manual review"]
     if decision.gate_result == "READY_FOR_DESIGN":
         return ["Escalate unrecognized cases to a human reviewer"]
     return ["Collect missing exception cases before design readiness"]
@@ -182,24 +185,48 @@ def risks(profile: EvidenceProfile, decision: ScoreDecision) -> list[JsonObject]
         {
             "category": "OPERATIONS",
             "level": decision.risk,
-            "description": "The work model may still omit edge cases or control points.",
+            "description": "Residual workflow uncertainty after documented controls.",
             "control": "Require playback confirmation and readiness review before G1 design.",
-            "residual_level": max(decision.risk - 1, 0),
+            "residual_level": decision.risk,
         },
     ]
-    if profile.risk_constraint_count > 0:
+    if profile.risk.inherent_risk_constraints:
         items.append(
             {
-                "category": "SECURITY",
+                "category": "OTHER",
                 "level": min(decision.risk, 4),
-                "description": (
-                    "Constraints mention security, authority, privacy, or financial exposure."
-                ),
-                "control": "Keep external execution and credential collection out of scope.",
-                "residual_level": max(decision.risk - 1, 0),
+                "description": "; ".join(profile.risk.inherent_risk_constraints)[:2000],
+                "control": risk_control_summary(profile),
+                "residual_level": decision.risk,
             },
         )
     return items
+
+
+def build_risk_profile(profile: EvidenceProfile) -> JsonObject:
+    assessment = profile.risk
+    return {
+        "safety_policy_constraints": list(assessment.safety_policy_constraints),
+        "inherent_risk_constraints": list(assessment.inherent_risk_constraints),
+        "unresolved_risk_constraints": list(assessment.unresolved_risk_constraints),
+        "controlled_risk_constraints": list(assessment.controlled_risk_constraints),
+        "unresolved_exceptions": list(assessment.unresolved_exceptions),
+        "controlled_exceptions": list(assessment.controlled_exceptions),
+        "authority_boundary_confirmed": assessment.authority_boundary_confirmed,
+        "authority_controls": list(assessment.authority_controls),
+        "open_contradictions": assessment.open_contradictions,
+        "residual_risk": assessment.residual_risk,
+    }
+
+
+def risk_control_summary(profile: EvidenceProfile) -> str:
+    controls = [
+        *profile.risk.controlled_risk_constraints,
+        *profile.risk.authority_controls,
+    ]
+    if controls:
+        return "; ".join(controls)[:2000]
+    return "No confirmed control is recorded; keep the workflow human-controlled."
 
 
 def prerequisites(decision: ScoreDecision) -> list[str]:
