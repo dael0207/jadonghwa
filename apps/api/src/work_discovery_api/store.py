@@ -11,6 +11,7 @@ from work_discovery_api.domain import (
     InterviewStatus,
     can_accept_answer,
     can_accept_evidence,
+    reopen_for_discovery,
     transition,
 )
 from work_discovery_api.models import (
@@ -510,6 +511,13 @@ class MemoryStore:
     ) -> InterviewRead:
         record = self.require_interview(interview_id)
         record.status = transition(record.status, target)
+        return self.interview_read(record)
+
+    def reopen_interview_for_discovery(self, interview_id: str) -> InterviewRead:
+        record = self.require_interview(interview_id)
+        if not record.active_consent:
+            raise ConsentRequiredError(interview_id=interview_id)
+        record.status = reopen_for_discovery(record.status)
         return self.interview_read(record)
 
     def record_audit(

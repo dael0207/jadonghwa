@@ -24,6 +24,7 @@ import {
   type ValidationResult,
   type WorkModel,
 } from "./api-client"
+import { DiscoveryRecoveryPanel } from "./discovery-recovery-panel"
 import {
   AuditPanel,
   M3Panel,
@@ -550,6 +551,12 @@ export default function Page() {
     setLatestReleaseReport(latestItem(reportList))
   }
 
+  async function refreshRecoveryWorkflow() {
+    if (!project || !interview) return
+    await refreshInterview(interview.id)
+    await refreshProjectM4(project.id)
+  }
+
   return (
     <main className="shell">
       <header className="header">
@@ -613,6 +620,13 @@ export default function Page() {
           onValidate={validateOpportunity}
           onReadiness={loadReadiness}
           onDiff={loadOpportunityDiff}
+        />
+        <DiscoveryRecoveryPanel
+          project={project}
+          interview={interview}
+          latestOpportunity={latestOpportunity}
+          readiness={readiness}
+          onWorkflowChanged={refreshRecoveryWorkflow}
         />
         <M5Panel
           project={project}

@@ -9,6 +9,7 @@ from work_discovery_api.adaptive_interview import DeterministicAdaptiveQuestionS
 from work_discovery_api.blueprint_builder import DeterministicBlueprintBuilder
 from work_discovery_api.contracts import default_contract_paths, initial_questions, validate_payload
 from work_discovery_api.design_package_builder import DeterministicDesignPackageBuilder
+from work_discovery_api.discovery_routes import register_discovery_routes
 from work_discovery_api.domain import (
     AuditAction,
     ConsentRequiredError,
@@ -295,6 +296,7 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
 
     register_m3_routes(app, app_store, paths, selector, analyzer)
     register_m4_routes(app, app_store, paths, analyzer)
+    register_discovery_routes(app, app_store, paths, analyzer)
     register_m5_routes(app, app_store, paths, design_builder)
     register_m6_routes(app, app_store, paths, blueprint_builder)
     register_m7_routes(app, app_store, paths, evaluation_runner)

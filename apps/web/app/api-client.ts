@@ -132,6 +132,35 @@ export type Readiness = {
   readonly created_at: string
 }
 
+export type DiscoveryDimension = {
+  readonly key: string
+  readonly label: string
+  readonly reason: string
+}
+
+export type DiscoveryQuestion = {
+  readonly id: string
+  readonly dimension: string
+  readonly text: string
+  readonly source: string
+}
+
+export type DiscoveryGuidance = {
+  readonly project_id: string
+  readonly interview_id: string | null
+  readonly interview_status: string | null
+  readonly gate_result: string
+  readonly recovery_required: boolean
+  readonly missing_dimensions: readonly DiscoveryDimension[]
+  readonly recommended_questions: readonly DiscoveryQuestion[]
+  readonly suggested_evidence_prompt: string
+  readonly can_reopen: boolean
+  readonly can_reanalyze: boolean
+  readonly latest_work_model_version: number | null
+  readonly latest_opportunity_id: string | null
+  readonly latest_opportunity_work_model_version: number | null
+}
+
 export type OpportunityDiff = {
   readonly project_id: string
   readonly previous_opportunity_id: string

@@ -10,6 +10,7 @@
 - M6: design package 기반 G1 Solution Blueprint preview, 품질 gate, JSON/Markdown export 완료
 - M7: deterministic evaluation run, 24개 fixture corpus, schema/audit 검증 완료
 - M8: limited release readiness report, readiness checklist, 웹 preview/validate 패널 완료
+- M4/M5 Recovery: `DISCOVERY_NEEDED`/`BLOCKED` guidance, recovery 전용 reopen, 추가 증거 기반 Work Model 재생성, Playback 재승인, append-only reanalysis, M5 웹 gate 완료
 - 다음 G2 후보: 제한된 starter scaffold template 연구, reviewer feedback/revision loop, 실제 파일럿 QA 운영 기준을 검토한다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
 
 ## 1. 이번 설계에서 확정한 사항
@@ -167,3 +168,4 @@
 4. 실제 파일럿 전에 QA runbook, deletion drill, support escalation checklist를 운영 문서로 분리
 5. LLM/STT 연결 전 provider boundary, prompt/input policy, redaction policy 테스트 강화
 6. 외부 시스템 실행과 실제 자격증명 수집은 별도 G2 이후 결정으로 유지
+7. M9 후보로 deterministic recovery 질문을 실제 LLM 기반 한 질문씩 이어가는 adaptive interview로 교체하되 consent, immutable turn, playback, audit 경계를 유지

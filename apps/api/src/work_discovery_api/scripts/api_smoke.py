@@ -102,6 +102,44 @@ def main() -> None:
     confirmed.raise_for_status()
     assert confirmed.json()["status"] == "FINALIZED"
 
+    guidance = client.get(f"/v1/projects/{project_id}/discovery-guidance")
+    guidance.raise_for_status()
+    assert guidance.json()["recovery_required"] is True
+    assert guidance.json()["missing_dimensions"]
+    assert guidance.json()["recommended_questions"]
+    reopened = client.post(f"/v1/projects/{project_id}/discovery/reopen")
+    reopened.raise_for_status()
+    assert reopened.json()["status"] == "NEEDS_EVIDENCE"
+    recovery_evidence = client.post(
+        f"/v1/interviews/{interview_id}/evidence",
+        json={
+            "text": (
+                "시스템/도구: ERP, CRM, Excel, PowerPoint\n"
+                "입력: ERP 매출 CSV, CRM 활동 Excel\n"
+                "출력: 월간 실적 보고서 PPT, 검증 완료 Excel\n"
+                "규칙/판단 기준: ERP 총액과 일치해야 하고 10% 이상 차이는 확인한다\n"
+                "예외/복구: 파일 누락은 담당자 확인 후 수동으로 다시 반영한다\n"
+                "승인/권한: 팀장이 최종 보고서를 승인한다\n"
+                "성과지표: 월 1회, 작성 4시간, 오류율 5% 이하\n"
+                "비범위: ERP 원본 수정, 결재 승인, 이메일 발송\n"
+                "근거: 실제 보고서 샘플과 검증 체크리스트"
+            ),
+        },
+    )
+    recovery_evidence.raise_for_status()
+    recovery_resume = client.post(f"/v1/interviews/{interview_id}/resume-model-building")
+    recovery_resume.raise_for_status()
+    recovery_model = client.post(f"/v1/interviews/{interview_id}/build-work-model")
+    recovery_model.raise_for_status()
+    recovery_confirm = client.post(f"/v1/interviews/{interview_id}/playback/confirm")
+    recovery_confirm.raise_for_status()
+    reanalyzed = client.post(f"/v1/projects/{project_id}/discovery/reanalyze")
+    reanalyzed.raise_for_status()
+    assert reanalyzed.json()["work_model_version"] > analyzed.json()["work_model_version"]
+    recovered_readiness = client.get(f"/v1/projects/{project_id}/readiness")
+    recovered_readiness.raise_for_status()
+    assert recovered_readiness.json()["result"] in {"ENABLE_FIRST", "READY_FOR_DESIGN"}
+
     audit = client.get(f"/v1/projects/{project_id}/audit-events")
     audit.raise_for_status()
     actions = {event["action"] for event in audit.json()}
@@ -112,6 +150,8 @@ def main() -> None:
     assert "OPPORTUNITY_VALIDATED" in actions
     assert "READINESS_EVALUATED" in actions
     assert "OPPORTUNITY_DIFF_GENERATED" in actions
+    assert "DISCOVERY_REOPENED" in actions
+    assert "DISCOVERY_REANALYZED" in actions
 
     rich_project = client.post("/v1/projects", json={"name": "M5 rich monthly report"})
     rich_project.raise_for_status()

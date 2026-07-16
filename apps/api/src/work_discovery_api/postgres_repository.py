@@ -16,6 +16,7 @@ from work_discovery_api.domain import (
     InterviewStatus,
     can_accept_answer,
     can_accept_evidence,
+    reopen_for_discovery,
     transition,
 )
 from work_discovery_api.models import (
@@ -518,6 +519,15 @@ class PostgresRepository:
     def transition_interview(self, interview_id: str, target: InterviewStatus) -> InterviewRead:
         current = self.get_interview(interview_id)
         status = transition(current.status, target)
+        with self._connect() as conn:
+            conn.execute(sql.UPDATE_INTERVIEW_STATUS, (status.value, UUID(interview_id)))
+            return interview_from_row(one(conn, sql.INTERVIEW, (UUID(interview_id),)))
+
+    def reopen_interview_for_discovery(self, interview_id: str) -> InterviewRead:
+        current = self.get_interview(interview_id)
+        if not current.active_consent:
+            raise ConsentRequiredError(interview_id=interview_id)
+        status = reopen_for_discovery(current.status)
         with self._connect() as conn:
             conn.execute(sql.UPDATE_INTERVIEW_STATUS, (status.value, UUID(interview_id)))
             return interview_from_row(one(conn, sql.INTERVIEW, (UUID(interview_id),)))

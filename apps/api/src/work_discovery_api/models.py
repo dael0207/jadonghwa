@@ -237,6 +237,41 @@ class ReadinessRead(BaseModel):
     created_at: datetime
 
 
+class DiscoveryDimensionRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    key: str
+    label: str
+    reason: str
+
+
+class DiscoveryQuestionRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    dimension: str
+    text: str
+    source: str = "question-bank-v1"
+
+
+class DiscoveryGuidanceRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    project_id: str
+    interview_id: str | None
+    interview_status: InterviewStatus | None
+    gate_result: str
+    recovery_required: bool
+    missing_dimensions: tuple[DiscoveryDimensionRead, ...]
+    recommended_questions: tuple[DiscoveryQuestionRead, ...]
+    suggested_evidence_prompt: str
+    can_reopen: bool
+    can_reanalyze: bool
+    latest_work_model_version: int | None
+    latest_opportunity_id: str | None
+    latest_opportunity_work_model_version: int | None
+
+
 class OpportunityDiffRead(BaseModel):
     model_config = ConfigDict(frozen=True)
 

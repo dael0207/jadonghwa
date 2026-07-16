@@ -11,6 +11,16 @@ from work_discovery_api.models import (
     QuestionRead,
     utc_now,
 )
+from work_discovery_api.recovery_evidence import (
+    build_authority_constraints,
+    build_decisions,
+    build_exceptions,
+    build_metrics,
+    build_rules,
+    build_structured_artifacts,
+    build_systems,
+    parse_recovery_evidence,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,8 +50,10 @@ class DeterministicWorkModelBuilder:
             )
 
         answer_refs = tuple(answer.id for answer in latest_answers)
+        recovery = parse_recovery_evidence(source.answers)
         now = utc_now().isoformat()
         meta = assertion_meta(answer_refs)
+        recovery_meta = assertion_meta(recovery.source_refs, confirmed=True)
         title = source.project.name
         summary = summarize_answers(latest_answers)
         step_answers = meaningful_answers(latest_answers)[:3] or latest_answers[:1]
@@ -119,6 +131,7 @@ class DeterministicWorkModelBuilder:
                     "retention": "프로젝트 보존 정책에 따름",
                     "meta": meta,
                 },
+                *build_structured_artifacts(recovery, recovery_meta),
             ],
             "systems": [
                 {
@@ -130,12 +143,13 @@ class DeterministicWorkModelBuilder:
                     "permission_notes": "M2 mock builder는 실제 시스템 자격증명을 수집하지 않는다.",
                     "meta": meta,
                 },
+                *build_systems(recovery, recovery_meta),
             ],
-            "decisions": [],
-            "rules": [],
-            "exceptions": [],
+            "decisions": build_decisions(recovery, recovery_meta),
+            "rules": build_rules(recovery, recovery_meta),
+            "exceptions": build_exceptions(recovery, recovery_meta),
             "pain_points": pain_points(latest_answers, meta),
-            "metrics": [],
+            "metrics": build_metrics(recovery, recovery_meta),
             "constraints": [
                 {
                     "id": "constraint-no-external-execution",
@@ -144,12 +158,19 @@ class DeterministicWorkModelBuilder:
                     "hard": True,
                     "meta": meta,
                 },
+                *build_authority_constraints(recovery, recovery_meta),
             ],
-            "non_goals": ["실제 LLM 호출", "STT 처리", "외부 자동화 실행", "G1 명세 생성"],
+            "non_goals": [
+                "실제 LLM 호출",
+                "STT 처리",
+                "외부 자동화 실행",
+                "G1 명세 생성",
+                *recovery.values.get("non_goals", ()),
+            ],
             "understanding_gate": {
-                "epistemic_coverage": 0.65,
-                "operational_readiness": 0.55,
-                "risk_clarity": 0.5,
+                "epistemic_coverage": 0.9 if recovery.present else 0.65,
+                "operational_readiness": 0.85 if recovery.present else 0.55,
+                "risk_clarity": 0.85 if recovery.present else 0.5,
                 "recent_case_present": True,
                 "playback_confirmed": False,
                 "open_material_gaps": [],
@@ -158,7 +179,7 @@ class DeterministicWorkModelBuilder:
             "evidence_summary": {
                 "claim_count": len(latest_answers),
                 "source_link_rate": 1,
-                "confirmed_claim_rate": 0,
+                "confirmed_claim_rate": round(recovery.coverage, 2) if recovery.present else 0,
                 "open_contradiction_count": 0,
             },
             "created_at": now,
@@ -197,10 +218,10 @@ def goal_statement(answers: tuple[AnswerRead, ...]) -> str:
     return f"'{text[:180]}' 업무를 이해하고 개선 가능성을 판단한다."
 
 
-def assertion_meta(source_refs: tuple[str, ...]) -> JsonObject:
+def assertion_meta(source_refs: tuple[str, ...], *, confirmed: bool = False) -> JsonObject:
     return {
-        "state": "CLAIMED",
-        "confidence": 0.65,
+        "state": "CORROBORATED" if confirmed else "CLAIMED",
+        "confidence": 0.9 if confirmed else 0.65,
         "source_refs": list(source_refs),
         "validated_by": [],
         "last_validated_at": None,

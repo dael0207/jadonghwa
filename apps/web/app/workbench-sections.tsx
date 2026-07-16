@@ -345,17 +345,26 @@ type M5PanelProps = {
 
 export function M5Panel(props: M5PanelProps) {
   const acceptanceTests = acceptanceTestsFrom(props.latestDesignPackage)
+  const gateResult = opportunityGate(props.latestOpportunity)
+  const canCreate =
+    Boolean(props.project && props.latestOpportunity?.schema_valid) &&
+    (gateResult === "READY_FOR_DESIGN" || gateResult === "ENABLE_FIRST")
   return (
     <section className="panel stack wide">
       <h2>6. M5 Design package</h2>
       <div className="cluster">
-        <button onClick={props.onCreate} disabled={!props.project || !props.latestOpportunity}>
+        <button onClick={props.onCreate} disabled={!canCreate}>
           Design Package 생성
         </button>
         <button onClick={props.onValidate} disabled={!props.latestDesignPackage}>
           Package 검증
         </button>
       </div>
+      {!canCreate && props.latestOpportunity ? (
+        <p className="error">
+          Gate가 {gateResult}이므로 Design Package를 만들 수 없습니다. Discovery recovery를 먼저 완료하세요.
+        </p>
+      ) : null}
       <div className="metric-grid">
         <p className="metric">
           <strong>Package type</strong>
@@ -633,6 +642,15 @@ function Metric({ label, value }: { readonly label: string; readonly value: stri
       <span className="status">{value}</span>
     </p>
   )
+}
+
+function opportunityGate(opportunity: Opportunity | null): string {
+  const gate = opportunity?.payload["gate"]
+  if (typeof gate !== "object" || gate === null || Array.isArray(gate)) {
+    return "UNKNOWN"
+  }
+  const result = (gate as Record<string, unknown>)["result"]
+  return typeof result === "string" ? result : "UNKNOWN"
 }
 
 function ValidationMessage({ validation }: { readonly validation: ValidationResult | null }) {

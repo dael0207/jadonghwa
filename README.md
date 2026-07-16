@@ -55,7 +55,7 @@ npm install
 npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, diff, M5 design package, M6 blueprint, M7 evaluation run, M8 release readiness report 생성/검증/preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, readiness gate, Discovery Recovery, diff, M5 design package, M6 blueprint, M7 evaluation run, M8 release readiness report 생성/검증/preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
 
 ## 저장소와 데이터베이스
 
@@ -142,6 +142,28 @@ M4에서도 의도적으로 구현하지 않는 것:
 - 외부 시스템 실행
 - 실제 자격증명 수집
 - 실제 G1 명세 생성
+
+### Discovery Recovery Loop
+
+`DISCOVERY_NEEDED`는 자동화 후보가 거절되었다는 뜻이 아니라, Work Model에 설계 판단에 필요한 근거가 부족하다는 뜻이다. `BLOCKED`도 현재 근거와 위험 경계로는 다음 단계가 닫혀 있음을 뜻한다. 두 결과에서는 웹의 **Discovery recovery** 패널이 시스템/도구, 입출력, 규칙, 예외, 승인, 지표, 비범위, source ref의 부족한 축과 `question-bank-v1.json` 기반 추가 질문을 표시한다.
+
+사용자 확인 순서는 다음과 같다.
+
+1. `복구 시작`으로 `FINALIZED` 인터뷰를 recovery 전용 경로에서 `NEEDS_EVIDENCE`로 연다.
+2. 실제 최근 사례를 기준으로 구조화된 추가 증거를 저장한다. 답변은 기존 turn을 덮어쓰지 않는다.
+3. `Work Model 재생성 준비` 후 기존 Work Model 생성 버튼으로 새 버전을 만든다.
+4. 생성된 모델을 Playback에서 사용자가 직접 승인한다.
+5. `Opportunity 재분석`으로 새 opportunity를 append-only로 저장하고 readiness를 다시 확인한다.
+
+`READY_FOR_DESIGN` 또는 `ENABLE_FIRST`일 때만 Design Package 생성이 가능하다. `DISCOVERY_NEEDED`와 `BLOCKED`에서는 API와 웹 버튼이 모두 생성을 막고 이유를 표시한다. 이 흐름은 deterministic label parser와 고정 질문 규칙이며 실제 LLM adaptive interview는 아니다.
+
+추가 API:
+
+- `GET /v1/projects/{project_id}/discovery-guidance`
+- `POST /v1/projects/{project_id}/discovery/reopen`
+- `POST /v1/projects/{project_id}/discovery/reanalyze`
+
+별도 DB migration은 추가하지 않았다. 기존 `interview_sessions.status`, append-only Work Model/opportunity, `answers`/`turns`, `audit_events`가 복구 상태와 `DISCOVERY_REOPENED`/`DISCOVERY_REANALYZED` 추적에 필요한 데이터를 모두 보존한다. 다음 M9/G2 후보는 실제 LLM 기반 단일 질문 후속 인터뷰, reviewer feedback/revision loop, 제한된 starter scaffold 경계다.
 
 ## M5 G1 Design Package Draft
 

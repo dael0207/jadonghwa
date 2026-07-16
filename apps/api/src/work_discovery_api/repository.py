@@ -116,6 +116,7 @@ class WorkDiscoveryRepository(Protocol):
         interview_id: str,
         target: InterviewStatus,
     ) -> InterviewRead: ...
+    def reopen_interview_for_discovery(self, interview_id: str) -> InterviewRead: ...
     def record_audit(
         self,
         subject_id: str,

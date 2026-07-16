@@ -15,6 +15,7 @@ tags:
   - name: Transcripts
   - name: WorkModels
   - name: Opportunities
+  - name: DiscoveryRecovery
   - name: DesignPackages
   - name: Blueprints
   - name: EvaluationRuns
@@ -346,6 +347,60 @@ paths:
                   type: object
                   additionalProperties: true
                   description: opportunity-v1.schema.json에 의해 검증되는 객체
+  /projects/{projectId}/discovery-guidance:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [DiscoveryRecovery]
+      operationId: getDiscoveryGuidance
+      summary: latest readiness와 Work Model 기반 추가 발견 안내 조회
+      responses:
+        '200':
+          description: deterministic discovery guidance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryGuidance'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/discovery/reopen:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [DiscoveryRecovery]
+      operationId: reopenDiscovery
+      summary: recovery 전용 경로로 latest interview를 NEEDS_EVIDENCE로 전환
+      responses:
+        '200':
+          description: recovery가 열린 interview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Interview'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/discovery/reanalyze:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [DiscoveryRecovery]
+      operationId: reanalyzeDiscovery
+      summary: playback 승인된 새 Work Model로 opportunity 재분석
+      responses:
+        '201':
+          description: append-only로 저장된 새 opportunity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Opportunity'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
   /opportunities/{opportunityId}/design-package:
     parameters:
       - $ref: '#/components/parameters/OpportunityId'
@@ -1061,6 +1116,91 @@ components:
           type: string
         error:
           type: [string, 'null']
+    Opportunity:
+      type: object
+      additionalProperties: false
+      required: [id, project_id, work_model_version, payload, schema_valid, created_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        work_model_version:
+          type: integer
+          minimum: 1
+        payload:
+          type: object
+          additionalProperties: true
+          description: opportunity-v1.schema.json에 의해 검증되는 객체
+        schema_valid:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    DiscoveryGuidance:
+      type: object
+      additionalProperties: false
+      required:
+        - project_id
+        - gate_result
+        - recovery_required
+        - missing_dimensions
+        - recommended_questions
+        - suggested_evidence_prompt
+        - can_reopen
+        - can_reanalyze
+      properties:
+        project_id:
+          type: string
+        interview_id:
+          type: [string, 'null']
+        interview_status:
+          type: [string, 'null']
+        gate_result:
+          type: string
+          enum: [BLOCKED, DISCOVERY_NEEDED, ENABLE_FIRST, READY_FOR_DESIGN]
+        recovery_required:
+          type: boolean
+        missing_dimensions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [key, label, reason]
+            properties:
+              key:
+                type: string
+              label:
+                type: string
+              reason:
+                type: string
+        recommended_questions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, dimension, text, source]
+            properties:
+              id:
+                type: string
+              dimension:
+                type: string
+              text:
+                type: string
+              source:
+                type: string
+        suggested_evidence_prompt:
+          type: string
+        can_reopen:
+          type: boolean
+        can_reanalyze:
+          type: boolean
+        latest_work_model_version:
+          type: [integer, 'null']
+        latest_opportunity_id:
+          type: [string, 'null']
+        latest_opportunity_work_model_version:
+          type: [integer, 'null']
     DesignPackage:
       type: object
       additionalProperties: false

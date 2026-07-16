@@ -46,6 +46,8 @@ class AuditAction(StrEnum):
     OPPORTUNITY_VALIDATED = "OPPORTUNITY_VALIDATED"
     READINESS_EVALUATED = "READINESS_EVALUATED"
     OPPORTUNITY_DIFF_GENERATED = "OPPORTUNITY_DIFF_GENERATED"
+    DISCOVERY_REOPENED = "DISCOVERY_REOPENED"
+    DISCOVERY_REANALYZED = "DISCOVERY_REANALYZED"
     DESIGN_PACKAGE_CREATED = "DESIGN_PACKAGE_CREATED"
     DESIGN_PACKAGE_VALIDATED = "DESIGN_PACKAGE_VALIDATED"
     BLUEPRINT_CREATED = "BLUEPRINT_CREATED"
@@ -130,6 +132,19 @@ def transition(current: InterviewStatus, target: InterviewStatus) -> InterviewSt
     if target in allowed_targets(current):
         return target
     raise InvalidTransitionError(current=current, target=target)
+
+
+def reopen_for_discovery(current: InterviewStatus) -> InterviewStatus:
+    recoverable = frozenset(
+        {
+            InterviewStatus.PLAYBACK_CONFIRMATION,
+            InterviewStatus.OPPORTUNITY_ANALYSIS_READY,
+            InterviewStatus.FINALIZED,
+        },
+    )
+    if current in recoverable:
+        return InterviewStatus.NEEDS_EVIDENCE
+    raise InvalidTransitionError(current=current, target=InterviewStatus.NEEDS_EVIDENCE)
 
 
 def can_accept_answer(status: InterviewStatus, active_consent: bool) -> bool:
