@@ -29,6 +29,12 @@ from work_discovery_api.models import (
     DesignPackageRead,
     EvaluationRunRead,
     EvidenceCreate,
+    EvidenceFileConfirm,
+    EvidenceFileRead,
+    EvidenceFileStoreCreate,
+    ImplementationPackageRead,
+    ImplementationPackageStoreCreate,
+    ImplementationRequirementsRead,
     InterviewRead,
     JsonObject,
     OpportunityRead,
@@ -52,6 +58,9 @@ from work_discovery_api.postgres_rows import (
     blueprint_from_row,
     design_package_from_row,
     evaluation_run_from_row,
+    evidence_file_from_row,
+    implementation_package_from_row,
+    implementation_requirements_from_row,
     int_value,
     interview_from_row,
     one,
@@ -515,6 +524,134 @@ class PostgresRepository:
         with self._connect() as conn:
             rows = conn.execute(sql.RELEASE_READINESS_BY_PROJECT, (UUID(project_id),)).fetchall()
             return tuple(release_readiness_from_row(row) for row in rows)
+
+    def save_evidence_file(self, payload: EvidenceFileStoreCreate) -> EvidenceFileRead:
+        self.require_project(payload.project_id)
+        evidence_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_EVIDENCE_FILE,
+                (
+                    evidence_id,
+                    UUID(payload.project_id),
+                    payload.role.value,
+                    payload.filename,
+                    payload.content_type,
+                    len(payload.content),
+                    payload.sha256,
+                    payload.content,
+                    Jsonb(payload.extracted_schema),
+                    Jsonb(payload.sample_values),
+                ),
+            )
+            return evidence_file_from_row(one(conn, sql.EVIDENCE_FILE, (evidence_id,)))
+
+    def confirm_evidence_file(
+        self,
+        evidence_file_id: str,
+        confirmation: EvidenceFileConfirm,
+    ) -> EvidenceFileRead:
+        self.get_evidence_file(evidence_file_id)
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_EVIDENCE_CONFIRMATION,
+                (
+                    uuid4(),
+                    UUID(evidence_file_id),
+                    confirmation.confirmed,
+                    confirmation.confirmed_by,
+                ),
+            )
+            return evidence_file_from_row(
+                one(conn, sql.EVIDENCE_FILE, (UUID(evidence_file_id),)),
+            )
+
+    def get_evidence_file(self, evidence_file_id: str) -> EvidenceFileRead:
+        with self._connect() as conn:
+            return evidence_file_from_row(
+                one(conn, sql.EVIDENCE_FILE, (UUID(evidence_file_id),)),
+            )
+
+    def list_project_evidence_files(self, project_id: str) -> tuple[EvidenceFileRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(sql.EVIDENCE_FILES_BY_PROJECT, (UUID(project_id),)).fetchall()
+            return tuple(evidence_file_from_row(row) for row in rows)
+
+    def save_implementation_requirements(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        confirmed: bool,
+    ) -> ImplementationRequirementsRead:
+        self.require_project(project_id)
+        requirements_id = uuid4()
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_IMPLEMENTATION_REQUIREMENTS,
+                (requirements_id, UUID(project_id), Jsonb(payload), confirmed),
+            )
+            return implementation_requirements_from_row(
+                one(
+                    conn,
+                    "SELECT id, project_id, payload, confirmed, created_at "
+                    "FROM implementation_requirements WHERE id = %s",
+                    (requirements_id,),
+                ),
+            )
+
+    def get_latest_implementation_requirements(
+        self,
+        project_id: str,
+    ) -> ImplementationRequirementsRead | None:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            row = conn.execute(
+                sql.LATEST_IMPLEMENTATION_REQUIREMENTS,
+                (UUID(project_id),),
+            ).fetchone()
+            return implementation_requirements_from_row(row) if row is not None else None
+
+    def save_implementation_package(
+        self,
+        payload: ImplementationPackageStoreCreate,
+    ) -> ImplementationPackageRead:
+        self.require_project(payload.project_id)
+        self.get_blueprint(payload.blueprint_id)
+        package_uuid = UUID(payload.package_id)
+        with self._connect() as conn:
+            conn.execute(
+                sql.INSERT_IMPLEMENTATION_PACKAGE,
+                (
+                    package_uuid,
+                    UUID(payload.project_id),
+                    UUID(payload.blueprint_id),
+                    Jsonb(payload.payload),
+                    payload.valid,
+                    payload.readiness_status.value,
+                ),
+            )
+            return implementation_package_from_row(
+                one(conn, sql.IMPLEMENTATION_PACKAGE, (package_uuid,)),
+            )
+
+    def get_implementation_package(self, package_id: str) -> ImplementationPackageRead:
+        with self._connect() as conn:
+            return implementation_package_from_row(
+                one(conn, sql.IMPLEMENTATION_PACKAGE, (UUID(package_id),)),
+            )
+
+    def list_project_implementation_packages(
+        self,
+        project_id: str,
+    ) -> tuple[ImplementationPackageRead, ...]:
+        self.require_project(project_id)
+        with self._connect() as conn:
+            rows = conn.execute(
+                sql.IMPLEMENTATION_PACKAGES_BY_PROJECT,
+                (UUID(project_id),),
+            ).fetchall()
+            return tuple(implementation_package_from_row(row) for row in rows)
 
     def transition_interview(self, interview_id: str, target: InterviewStatus) -> InterviewRead:
         current = self.get_interview(interview_id)

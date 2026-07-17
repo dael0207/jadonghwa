@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from work_discovery_api.domain import AuditAction, InterviewStatus
+from work_discovery_api.domain import (
+    AuditAction,
+    InterviewStatus,
+)
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
@@ -13,6 +16,12 @@ from work_discovery_api.models import (
     DesignPackageRead,
     EvaluationRunRead,
     EvidenceCreate,
+    EvidenceFileConfirm,
+    EvidenceFileRead,
+    EvidenceFileStoreCreate,
+    ImplementationPackageRead,
+    ImplementationPackageStoreCreate,
+    ImplementationRequirementsRead,
     InterviewRead,
     JsonObject,
     OpportunityRead,
@@ -111,6 +120,33 @@ class WorkDiscoveryRepository(Protocol):
         self,
         project_id: str,
     ) -> tuple[ReleaseReadinessRead, ...]: ...
+    def save_evidence_file(self, payload: EvidenceFileStoreCreate) -> EvidenceFileRead: ...
+    def confirm_evidence_file(
+        self,
+        evidence_file_id: str,
+        confirmation: EvidenceFileConfirm,
+    ) -> EvidenceFileRead: ...
+    def get_evidence_file(self, evidence_file_id: str) -> EvidenceFileRead: ...
+    def list_project_evidence_files(self, project_id: str) -> tuple[EvidenceFileRead, ...]: ...
+    def save_implementation_requirements(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        confirmed: bool,
+    ) -> ImplementationRequirementsRead: ...
+    def get_latest_implementation_requirements(
+        self,
+        project_id: str,
+    ) -> ImplementationRequirementsRead | None: ...
+    def save_implementation_package(
+        self,
+        payload: ImplementationPackageStoreCreate,
+    ) -> ImplementationPackageRead: ...
+    def get_implementation_package(self, package_id: str) -> ImplementationPackageRead: ...
+    def list_project_implementation_packages(
+        self,
+        project_id: str,
+    ) -> tuple[ImplementationPackageRead, ...]: ...
     def transition_interview(
         self,
         interview_id: str,

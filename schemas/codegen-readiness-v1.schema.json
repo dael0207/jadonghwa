@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://work-discovery.local/schemas/codegen-readiness-v1.schema.json",
+  "title": "Codegen Readiness v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "package_id",
+    "project_id",
+    "status",
+    "codegen_ready",
+    "blockers",
+    "follow_up_questions",
+    "checks",
+    "evaluated_at"
+  ],
+  "properties": {
+    "package_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["DESIGN_READY", "IMPLEMENTATION_READY", "CODEGEN_READY"]
+    },
+    "codegen_ready": { "type": "boolean" },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "passed", "detail"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "passed": { "type": "boolean" },
+          "detail": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evaluated_at": { "type": "string", "format": "date-time" }
+  }
+}

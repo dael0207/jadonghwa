@@ -24,6 +24,12 @@ from work_discovery_api.models import (
     DesignPackageRead,
     EvaluationRunRead,
     EvidenceCreate,
+    EvidenceFileConfirm,
+    EvidenceFileRead,
+    EvidenceFileStoreCreate,
+    ImplementationPackageRead,
+    ImplementationPackageStoreCreate,
+    ImplementationRequirementsRead,
     InterviewRead,
     JsonObject,
     OpportunityRead,
@@ -66,6 +72,16 @@ class MemoryStore:
     blueprints: dict[str, list[BlueprintRead]] = field(default_factory=dict)
     evaluation_runs: dict[str, list[EvaluationRunRead]] = field(default_factory=dict)
     release_readiness_reports: dict[str, list[ReleaseReadinessRead]] = field(
+        default_factory=dict,
+    )
+    evidence_files: dict[str, list[EvidenceFileRead]] = field(default_factory=dict)
+    evidence_file_confirmations: dict[str, list[EvidenceFileConfirm]] = field(
+        default_factory=dict,
+    )
+    implementation_requirements: dict[str, list[ImplementationRequirementsRead]] = field(
+        default_factory=dict,
+    )
+    implementation_packages: dict[str, list[ImplementationPackageRead]] = field(
         default_factory=dict,
     )
     audit_events: list[AuditEventRead] = field(default_factory=list)
@@ -117,11 +133,7 @@ class MemoryStore:
 
     def list_project_interviews(self, project_id: str) -> tuple[InterviewRead, ...]:
         self.require_project(project_id)
-        records = [
-            record
-            for record in self.interviews.values()
-            if record.project_id == project_id
-        ]
+        records = [record for record in self.interviews.values() if record.project_id == project_id]
         return tuple(
             self.interview_read(record)
             for record in sorted(records, key=lambda item: item.created_at)
@@ -503,6 +515,109 @@ class MemoryStore:
     ) -> tuple[ReleaseReadinessRead, ...]:
         self.require_project(project_id)
         return tuple(self.release_readiness_reports.get(project_id, ()))
+
+    def save_evidence_file(self, payload: EvidenceFileStoreCreate) -> EvidenceFileRead:
+        self.require_project(payload.project_id)
+        evidence = EvidenceFileRead(
+            id=str(uuid4()),
+            project_id=payload.project_id,
+            role=payload.role,
+            filename=payload.filename,
+            content_type=payload.content_type,
+            size_bytes=len(payload.content),
+            sha256=payload.sha256,
+            content=payload.content,
+            extracted_schema=payload.extracted_schema,
+            sample_values=payload.sample_values,
+            confirmed=False,
+            created_at=utc_now(),
+        )
+        self.evidence_files.setdefault(payload.project_id, []).append(evidence)
+        return evidence
+
+    def confirm_evidence_file(
+        self,
+        evidence_file_id: str,
+        confirmation: EvidenceFileConfirm,
+    ) -> EvidenceFileRead:
+        evidence = self.get_evidence_file(evidence_file_id)
+        self.evidence_file_confirmations.setdefault(evidence_file_id, []).append(confirmation)
+        return evidence.model_copy(update={"confirmed": confirmation.confirmed})
+
+    def get_evidence_file(self, evidence_file_id: str) -> EvidenceFileRead:
+        for files in self.evidence_files.values():
+            for evidence in files:
+                if evidence.id == evidence_file_id:
+                    confirmations = self.evidence_file_confirmations.get(evidence_file_id, ())
+                    confirmed = confirmations[-1].confirmed if confirmations else False
+                    return evidence.model_copy(update={"confirmed": confirmed})
+        message = f"evidence file {evidence_file_id} not found"
+        raise KeyError(message)
+
+    def list_project_evidence_files(self, project_id: str) -> tuple[EvidenceFileRead, ...]:
+        self.require_project(project_id)
+        return tuple(
+            self.get_evidence_file(evidence.id)
+            for evidence in self.evidence_files.get(project_id, ())
+        )
+
+    def save_implementation_requirements(
+        self,
+        project_id: str,
+        payload: JsonObject,
+        confirmed: bool,
+    ) -> ImplementationRequirementsRead:
+        self.require_project(project_id)
+        requirements = ImplementationRequirementsRead(
+            id=str(uuid4()),
+            project_id=project_id,
+            payload=payload,
+            confirmed=confirmed,
+            created_at=utc_now(),
+        )
+        self.implementation_requirements.setdefault(project_id, []).append(requirements)
+        return requirements
+
+    def get_latest_implementation_requirements(
+        self,
+        project_id: str,
+    ) -> ImplementationRequirementsRead | None:
+        self.require_project(project_id)
+        requirements = self.implementation_requirements.get(project_id, ())
+        return requirements[-1] if requirements else None
+
+    def save_implementation_package(
+        self,
+        payload: ImplementationPackageStoreCreate,
+    ) -> ImplementationPackageRead:
+        self.require_project(payload.project_id)
+        self.get_blueprint(payload.blueprint_id)
+        package = ImplementationPackageRead(
+            id=payload.package_id,
+            project_id=payload.project_id,
+            blueprint_id=payload.blueprint_id,
+            payload=payload.payload,
+            schema_valid=payload.valid,
+            readiness_status=payload.readiness_status,
+            created_at=utc_now(),
+        )
+        self.implementation_packages.setdefault(payload.project_id, []).append(package)
+        return package
+
+    def get_implementation_package(self, package_id: str) -> ImplementationPackageRead:
+        for packages in self.implementation_packages.values():
+            for package in packages:
+                if package.id == package_id:
+                    return package
+        message = f"implementation package {package_id} not found"
+        raise KeyError(message)
+
+    def list_project_implementation_packages(
+        self,
+        project_id: str,
+    ) -> tuple[ImplementationPackageRead, ...]:
+        self.require_project(project_id)
+        return tuple(self.implementation_packages.get(project_id, ()))
 
     def transition_interview(
         self,

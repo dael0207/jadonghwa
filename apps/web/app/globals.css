@@ -78,6 +78,12 @@ textarea {
   resize: vertical;
 }
 
+.contract-editor {
+  min-height: 360px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+}
+
 .shell {
   width: min(1280px, 100%);
   margin: 0 auto;
@@ -237,6 +243,57 @@ textarea {
 .list-row:first-of-type {
   border-top: 0;
   padding-top: 0;
+}
+
+.evidence-list,
+.m9-list {
+  display: grid;
+  gap: 8px;
+}
+
+.evidence-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  border-top: 1px solid var(--border-default);
+  padding-top: 8px;
+}
+
+.acceptance-binding {
+  border-top: 1px solid var(--border-default);
+  padding-top: 0.75rem;
+}
+
+.evidence-id {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.evidence-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.evidence-row p {
+  margin: 2px 0 0;
+}
+
+.evidence-row details {
+  grid-column: 1 / -1;
+}
+
+.compact-fields {
+  align-items: start;
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-weight: 700;
 }
 
 .acceptance-list {

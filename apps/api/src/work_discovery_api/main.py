@@ -17,12 +17,16 @@ from work_discovery_api.domain import (
     InvalidTransitionError,
 )
 from work_discovery_api.evaluation_runner import DeterministicEvaluationRunner
+from work_discovery_api.implementation_package_builder import (
+    DeterministicImplementationPackageBuilder,
+)
 from work_discovery_api.m3_routes import register_m3_routes
 from work_discovery_api.m4_routes import register_m4_routes
 from work_discovery_api.m5_routes import register_m5_routes
 from work_discovery_api.m6_routes import register_m6_routes
 from work_discovery_api.m7_routes import register_m7_routes
 from work_discovery_api.m8_routes import register_m8_routes
+from work_discovery_api.m9_routes import register_m9_routes
 from work_discovery_api.models import (
     AnswerCreate,
     AnswerRead,
@@ -58,9 +62,10 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     blueprint_builder = DeterministicBlueprintBuilder()
     evaluation_runner = DeterministicEvaluationRunner()
     release_evaluator = DeterministicReleaseReadinessEvaluator()
+    implementation_builder = DeterministicImplementationPackageBuilder()
     app = FastAPI(
         title="Work Discovery AI API",
-        version="0.8.0",
+        version="0.9.0",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -301,6 +306,7 @@ def create_app(store: WorkDiscoveryRepository | None = None) -> FastAPI:
     register_m6_routes(app, app_store, paths, blueprint_builder)
     register_m7_routes(app, app_store, paths, evaluation_runner)
     register_m8_routes(app, app_store, paths, release_evaluator)
+    register_m9_routes(app, app_store, paths, implementation_builder)
 
     return app
 

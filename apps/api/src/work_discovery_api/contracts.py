@@ -46,6 +46,30 @@ class ContractPaths:
     def release_readiness_schema(self) -> Path:
         return self.root / "schemas" / "release-readiness-v1.schema.json"
 
+    @property
+    def automation_workflow_schema(self) -> Path:
+        return self.root / "schemas" / "automation-workflow-v1.schema.json"
+
+    @property
+    def integration_contract_schema(self) -> Path:
+        return self.root / "schemas" / "integration-contract-v1.schema.json"
+
+    @property
+    def implementation_package_schema(self) -> Path:
+        return self.root / "schemas" / "implementation-package-v1.schema.json"
+
+    @property
+    def codegen_readiness_schema(self) -> Path:
+        return self.root / "schemas" / "codegen-readiness-v1.schema.json"
+
+    @property
+    def export_manifest_schema(self) -> Path:
+        return self.root / "schemas" / "export-manifest-v1.schema.json"
+
+    @property
+    def acceptance_fixture_schema(self) -> Path:
+        return self.root / "schemas" / "acceptance-fixture-v1.schema.json"
+
 
 def default_contract_paths() -> ContractPaths:
     return ContractPaths(root=Path(__file__).resolve().parents[4])

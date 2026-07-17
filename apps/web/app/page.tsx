@@ -25,6 +25,7 @@ import {
   type WorkModel,
 } from "./api-client"
 import { DiscoveryRecoveryPanel } from "./discovery-recovery-panel"
+import { M9Workbench } from "./m9-workbench"
 import {
   AuditPanel,
   M3Panel,
@@ -561,7 +562,7 @@ export default function Page() {
     <main className="shell">
       <header className="header">
         <h1>Work Discovery AI</h1>
-        <p>M8 인터뷰, blueprint, evaluation, release readiness 작업 화면</p>
+        <p>M9 인터뷰부터 CODEGEN_READY implementation package까지의 작업 화면</p>
       </header>
       <div className="grid">
         <div className="workbench-lane">
@@ -672,6 +673,7 @@ export default function Page() {
           onCreate={createReleaseReadiness}
           onValidate={validateReleaseReadiness}
         />
+        <M9Workbench project={project} />
         <AuditPanel events={auditEvents} />
       </div>
     </main>

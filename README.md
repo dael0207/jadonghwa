@@ -1,7 +1,7 @@
 # Work Discovery AI Blueprint
 
-버전: v0.1  
-상태: 연구·MVP 설계 기준선  
+버전: v0.9
+상태: M9 Implementation Package 구현 완료
 목표 사용자: 자동화 지식이 부족하지만 디지털 업무를 개선하고 싶은 개인, 직원, 팀, 중소기업
 
 ## 제품 정의
@@ -36,6 +36,12 @@
 - `schemas/interview-state-v1.schema.json`
 - `schemas/opportunity-v1.schema.json`
 - `schemas/design-package-v1.schema.json`
+- `schemas/automation-workflow-v1.schema.json`
+- `schemas/integration-contract-v1.schema.json`
+- `schemas/implementation-package-v1.schema.json`
+- `schemas/codegen-readiness-v1.schema.json`
+- `schemas/export-manifest-v1.schema.json`
+- `schemas/acceptance-fixture-v1.schema.json`
 - `question-bank-v1.json`
 - `openapi-mvp.yaml`
 
@@ -55,7 +61,7 @@ npm install
 npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, residual-risk gate, Discovery Recovery, diff, M5 design package, M6 blueprint, M7 evaluation run, M8 release readiness report 생성/검증/preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
+브라우저에서 `http://127.0.0.1:3000`을 열면 프로젝트 생성, 인터뷰 생성, 동의, 10문항 답변, Work Model 생성, Playback 승인/거절, 추가 증거, 답변 수정, 재빌드, coverage/next-question, opportunity draft, M4 opportunity scoring, residual-risk gate, Discovery Recovery, diff, M5 design package, M6 blueprint, M7 evaluation run, M8 release readiness report, M9 implementation package와 CODEGEN_READY ZIP 생성/검증/preview, 감사 이벤트 조회까지 클릭으로 확인할 수 있다.
 
 ## 저장소와 데이터베이스
 
@@ -71,7 +77,7 @@ npm install
 npm run migration:smoke
 ```
 
-## M1~M8.1 검증
+## M1~M9 검증
 
 ```bash
 cd apps/api
@@ -81,6 +87,7 @@ python -m basedpyright
 python -m work_discovery_api.scripts.schema_smoke
 python -m work_discovery_api.scripts.api_smoke
 python -m work_discovery_api.scripts.server_smoke
+python -m pytest tests/test_m9_acceptance.py -q
 
 cd ../../infra/db
 npm install
@@ -241,10 +248,56 @@ M8는 실제 배포가 아니다. consent/audit/deletion readiness, schema valid
 
 M6~M8.1에서 생성하는 것은 G1 설계 preview와 QA/release-prep 문서다. 실제 LLM 호출, STT/음성 녹음, 외부 업무 시스템 실행, 실제 자격증명 수집, 실제 앱 코드 생성, 운영 배포는 포함하지 않는다.
 
-MVP G1 후보 작업은 여기서 완료되었고, 다음 G2 후보는 제한된 starter scaffold template 연구와 reviewer feedback/revision loop다.
+## M9 Implementation Package와 CODEGEN_READY
+
+M9는 `DESIGN_READY`, `IMPLEMENTATION_READY`, `CODEGEN_READY`를 구분한다.
+
+- `DESIGN_READY`: M8의 FULL_G1 blueprint는 있으나 구현 계약의 핵심 필드가 없거나 미확정이다.
+- `IMPLEMENTATION_READY`: runtime, workflow, schema, mapping, rule, exception, approval, adapter 계약은 있지만 fixture나 검증 근거가 부족하다.
+- `CODEGEN_READY`: critical field의 `UNKNOWN`/미해결 참조가 없고, 정상·오류·예외·승인 필요 fixture가 각각 확인되었으며, DAG·schema·traceability·보안 검사를 모두 통과했다.
+
+웹의 **M9 Implementation package** 패널에서 CSV/JSON/XLSX sample을 업로드하면 컬럼, 자료형, 필수값과 예제값을 추출한다. 사용자가 schema를 확인한 뒤 acceptance 사례별 input/expected fixture 선택기로 계약에 연결한다. 원본, 추출 결과, 사용자 확인, 요구사항, package는 append-only로 저장된다.
+
+추가 API:
+
+- `GET /v1/implementation-requirements/template`
+- `POST|GET /v1/projects/{project_id}/evidence-files`
+- `POST /v1/evidence-files/{evidence_file_id}/confirm`
+- `POST /v1/projects/{project_id}/implementation-requirements`
+- `POST|GET /v1/projects/{project_id}/implementation-packages`
+- `GET /v1/implementation-packages/{package_id}`
+- `POST /v1/implementation-packages/{package_id}/validate`
+- `GET /v1/implementation-packages/{package_id}/codegen-readiness`
+- `GET /v1/implementation-packages/{package_id}/export.zip?mode=draft|codegen`
+
+CODEGEN_READY ZIP 구조:
+
+```text
+manifest.json
+README.md
+source/{work-model,opportunity,design-package,blueprint}.json
+contracts/{workflow,integrations,input.schema,output.schema,mappings,decisions,exceptions,approvals}.json
+implementation/{stack.json,architecture.md,modules.json,env.example,deployment.md}
+tests/acceptance-tests.json
+tests/fixtures/input/*
+tests/fixtures/expected/*
+traceability/evidence-map.json
+```
+
+`manifest.json`은 파일별 SHA-256과 크기를 기록한다. codegen export는 모든 참조 대상, fixture output schema, DAG 연결, 4종 acceptance case, 절대 경로, secret 유사 값까지 재검증한다. DRAFT ZIP은 blocker 확인용이며 구현 전달 승인을 뜻하지 않는다.
+
+Artifact-only blind-build는 export ZIP을 별도 임시 디렉터리에 풀고 저장소 코드, 실행 중 API, DB 없이 ZIP의 mapping과 fixture만 사용해 reference automation을 생성한다. 네 acceptance case를 실행해 기대 JSON과 의미적으로 동일한지 검사한다.
+
+```bash
+cd apps/api
+python -m work_discovery_api.scripts.blind_build_smoke /path/to/codegen-ready.zip
+```
+
+M9는 구현 가능한 계약과 fixture를 생성하지만 실제 자동화 앱 코드를 ZIP에 생성하지 않는다. 실제 외부 시스템 실행, 자격증명 값 수집, production 배포도 계속 금지한다.
 
 새 의존성:
 
+- `defusedxml`: 신뢰할 수 없는 XLSX 내부 XML을 외부 엔터티 확장 없이 분석
 - `psycopg[binary]`: `DATABASE_URL` 기반 PostgreSQL 저장소 연결
 - `ky`: 웹 UI의 API 호출 클라이언트
 - `playwright`: 로컬 웹 스모크 검증

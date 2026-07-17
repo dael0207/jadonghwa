@@ -29,14 +29,10 @@ INSERT_INTERVIEW = (
 )
 UPDATE_INTERVIEW_STATUS = "UPDATE interview_sessions SET status=%s, updated_at=now() WHERE id=%s"
 UPDATE_INTERVIEW_CONSENTED = (
-    "UPDATE interview_sessions "
-    "SET status=%s, active_consent=true, updated_at=now() "
-    "WHERE id=%s"
+    "UPDATE interview_sessions SET status=%s, active_consent=true, updated_at=now() WHERE id=%s"
 )
 UPDATE_INTERVIEW_CONSENT_REVOKED = (
-    "UPDATE interview_sessions "
-    "SET status=%s, active_consent=false, updated_at=now() "
-    "WHERE id=%s"
+    "UPDATE interview_sessions SET status=%s, active_consent=false, updated_at=now() WHERE id=%s"
 )
 INSERT_CONSENT = (
     "INSERT INTO consent_records "
@@ -44,8 +40,7 @@ INSERT_CONSENT = (
     "VALUES (%s, %s, %s, %s, %s, %s)"
 )
 REVOKE_CONSENT = (
-    "UPDATE consent_records SET revoked_at=now() "
-    "WHERE interview_id=%s AND revoked_at IS NULL"
+    "UPDATE consent_records SET revoked_at=now() WHERE interview_id=%s AND revoked_at IS NULL"
 )
 QUESTIONS = (
     "SELECT id, stage, dimension, question_text, required, position "
@@ -61,8 +56,7 @@ UPSERT_QUESTION = (
 )
 NEXT_TURN = "SELECT count(*)::int + 1 AS next_sequence FROM turns WHERE interview_id=%s"
 INSERT_TURN = (
-    "INSERT INTO turns (id, interview_id, sequence_number, event_type) "
-    "VALUES (%s, %s, %s, %s)"
+    "INSERT INTO turns (id, interview_id, sequence_number, event_type) VALUES (%s, %s, %s, %s)"
 )
 INSERT_ANSWER = (
     "INSERT INTO answers "
@@ -104,12 +98,10 @@ WORK_MODELS = (
     "FROM work_models WHERE project_id = %s ORDER BY version ASC"
 )
 WORK_MODEL_BY_ID = (
-    "SELECT project_id, version, payload, schema_valid, created_at "
-    "FROM work_models WHERE id = %s"
+    "SELECT project_id, version, payload, schema_valid, created_at FROM work_models WHERE id = %s"
 )
 NEXT_MODEL_VERSION = (
-    "SELECT coalesce(max(version), 0)::int + 1 AS version "
-    "FROM work_models WHERE project_id = %s"
+    "SELECT coalesce(max(version), 0)::int + 1 AS version FROM work_models WHERE project_id = %s"
 )
 INSERT_WORK_MODEL = (
     "INSERT INTO work_models (id, project_id, version, payload, schema_valid) "
@@ -163,12 +155,10 @@ BLUEPRINTS_BY_DESIGN_PACKAGE = (
     "FROM blueprints WHERE design_package_id = %s ORDER BY created_at ASC, id ASC"
 )
 INSERT_EVALUATION_RUN = (
-    "INSERT INTO evaluation_runs (id, project_id, payload, schema_valid) "
-    "VALUES (%s, %s, %s, %s)"
+    "INSERT INTO evaluation_runs (id, project_id, payload, schema_valid) VALUES (%s, %s, %s, %s)"
 )
 EVALUATION_RUN = (
-    "SELECT id, project_id, payload, schema_valid, created_at "
-    "FROM evaluation_runs WHERE id = %s"
+    "SELECT id, project_id, payload, schema_valid, created_at FROM evaluation_runs WHERE id = %s"
 )
 EVALUATION_RUNS_BY_PROJECT = (
     "SELECT id, project_id, payload, schema_valid, created_at "
@@ -185,6 +175,53 @@ RELEASE_READINESS = (
 RELEASE_READINESS_BY_PROJECT = (
     "SELECT id, project_id, payload, schema_valid, created_at "
     "FROM release_readiness_reports WHERE project_id = %s ORDER BY created_at ASC, id ASC"
+)
+INSERT_EVIDENCE_FILE = (
+    "INSERT INTO evidence_files "
+    "(id, project_id, role, filename, content_type, size_bytes, sha256, content, "
+    "extracted_schema, sample_values) "
+    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+)
+EVIDENCE_FILE = (
+    "SELECT e.id, e.project_id, e.role, e.filename, e.content_type, e.size_bytes, "
+    "e.sha256, e.content, e.extracted_schema, e.sample_values, e.created_at, "
+    "coalesce((SELECT c.confirmed FROM evidence_file_confirmations c "
+    "WHERE c.evidence_file_id=e.id ORDER BY c.created_at DESC, c.id DESC LIMIT 1), false) "
+    "AS confirmed FROM evidence_files e WHERE e.id = %s"
+)
+EVIDENCE_FILES_BY_PROJECT = (
+    "SELECT e.id, e.project_id, e.role, e.filename, e.content_type, e.size_bytes, "
+    "e.sha256, e.content, e.extracted_schema, e.sample_values, e.created_at, "
+    "coalesce((SELECT c.confirmed FROM evidence_file_confirmations c "
+    "WHERE c.evidence_file_id=e.id ORDER BY c.created_at DESC, c.id DESC LIMIT 1), false) "
+    "AS confirmed FROM evidence_files e WHERE e.project_id = %s "
+    "ORDER BY e.created_at ASC, e.id ASC"
+)
+INSERT_EVIDENCE_CONFIRMATION = (
+    "INSERT INTO evidence_file_confirmations "
+    "(id, evidence_file_id, confirmed, confirmed_by) VALUES (%s, %s, %s, %s)"
+)
+INSERT_IMPLEMENTATION_REQUIREMENTS = (
+    "INSERT INTO implementation_requirements (id, project_id, payload, confirmed) "
+    "VALUES (%s, %s, %s, %s)"
+)
+LATEST_IMPLEMENTATION_REQUIREMENTS = (
+    "SELECT id, project_id, payload, confirmed, created_at "
+    "FROM implementation_requirements WHERE project_id = %s "
+    "ORDER BY created_at DESC, id DESC LIMIT 1"
+)
+INSERT_IMPLEMENTATION_PACKAGE = (
+    "INSERT INTO implementation_packages "
+    "(id, project_id, blueprint_id, payload, schema_valid, readiness_status) "
+    "VALUES (%s, %s, %s, %s, %s, %s)"
+)
+IMPLEMENTATION_PACKAGE = (
+    "SELECT id, project_id, blueprint_id, payload, schema_valid, readiness_status, created_at "
+    "FROM implementation_packages WHERE id = %s"
+)
+IMPLEMENTATION_PACKAGES_BY_PROJECT = (
+    "SELECT id, project_id, blueprint_id, payload, schema_valid, readiness_status, created_at "
+    "FROM implementation_packages WHERE project_id = %s ORDER BY created_at ASC, id ASC"
 )
 INSERT_AUDIT = (
     "INSERT INTO audit_events (id, subject_id, action, metadata) "

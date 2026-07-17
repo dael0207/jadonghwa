@@ -12,7 +12,8 @@
 - M8: limited release readiness report, readiness checklist, 웹 preview/validate 패널 완료
 - M4/M5 Recovery: `DISCOVERY_NEEDED`/`BLOCKED` guidance, recovery 전용 reopen, 추가 증거 기반 Work Model 재생성, Playback 재승인, append-only reanalysis, M5 웹 gate 완료
 - M8.1: 제품 안전 정책과 실제 업무 위험 분리, 통제/미해결 위험·예외·권한 분류, residual-risk gate, 정상 Recovery의 FULL_G1~M8 READY 경로 완료
-- 다음 G2 후보: 제한된 starter scaffold template 연구, reviewer feedback/revision loop, 실제 파일럿 QA 운영 기준을 검토한다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
+- M9: Implementation Package, 3단계 readiness gate, sample evidence 확인, CODEGEN_READY ZIP, 4종 fixture blind-build QA 완료
+- 다음 G2 후보: CODEGEN_READY package 기반 제한된 starter scaffold, reviewer feedback/revision loop, 실제 파일럿 QA 운영 기준을 검토한다. 실제 외부 실행과 자격증명 수집은 계속 비범위로 둔다.
 
 ## 1. 이번 설계에서 확정한 사항
 
@@ -161,7 +162,20 @@
 
 ---
 
-## 6. 바로 다음 구현 작업 — G2 후보
+## 6. 완료된 구현 작업 — M9
+
+1. workflow, integration, implementation package, codegen readiness, manifest, acceptance fixture schema 추가
+2. `DESIGN_READY`, `IMPLEMENTATION_READY`, `CODEGEN_READY` gate 분리
+3. CSV/JSON/XLSX evidence 안전 분석과 append-only 원본·추출·확인 추적
+4. in-memory/PostgreSQL 저장소와 migration에 evidence와 implementation package 추가
+5. runtime, DAG, schema, mapping, rule, exception, approval, adapter, module, 운영 요구사항 계약 생성
+6. DRAFT/CODEGEN_READY ZIP 분리와 파일별 checksum·traceability 검증
+7. 정상·오류·예외·승인 필요 fixture를 ZIP만으로 실행하는 artifact-only blind-build QA 추가
+8. 웹 workbench에 blocker, 추가 질문, schema 확인, fixture binding, gate, ZIP 다운로드 패널 추가
+
+---
+
+## 7. 바로 다음 구현 작업 — G2 후보
 
 1. 제한된 starter scaffold template 범위 결정: 실제 실행 없는 파일 구조 preview인지, 다운로드 가능한 skeleton인지 구분
 2. Reviewer feedback/revision API와 append-only revision history 추가
@@ -169,4 +183,4 @@
 4. 실제 파일럿 전에 QA runbook, deletion drill, support escalation checklist를 운영 문서로 분리
 5. LLM/STT 연결 전 provider boundary, prompt/input policy, redaction policy 테스트 강화
 6. 외부 시스템 실행과 실제 자격증명 수집은 별도 G2 이후 결정으로 유지
-7. M9 후보로 deterministic recovery 질문을 실제 LLM 기반 한 질문씩 이어가는 adaptive interview로 교체하되 consent, immutable turn, playback, audit 경계를 유지
+7. deterministic recovery 질문을 실제 LLM 기반 한 질문씩 이어가는 adaptive interview로 교체하되 consent, immutable turn, playback, audit 경계를 유지

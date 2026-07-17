@@ -21,6 +21,10 @@ const requiredTables = new Set([
   "blueprints",
   "evaluation_runs",
   "release_readiness_reports",
+  "evidence_files",
+  "evidence_file_confirmations",
+  "implementation_requirements",
+  "implementation_packages",
 ]);
 
 const requiredIndexes = new Set([
@@ -35,6 +39,11 @@ const requiredIndexes = new Set([
   "idx_blueprints_design_package_id",
   "idx_evaluation_runs_project_id",
   "idx_release_readiness_project_id",
+  "idx_evidence_files_project_created",
+  "idx_evidence_file_confirmations_file_created",
+  "idx_implementation_requirements_project_created",
+  "idx_implementation_packages_project_created",
+  "idx_implementation_packages_blueprint",
 ]);
 
 const here = dirname(fileURLToPath(import.meta.url));

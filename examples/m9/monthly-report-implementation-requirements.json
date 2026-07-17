@@ -1,0 +1,327 @@
+{
+  "target_runtime": "Python 3.12",
+  "framework": "Python standard library",
+  "package_manager": "uv",
+  "execution_interface": {
+    "type": "CLI",
+    "command": "python -m monthly_report --input {input_path} --output {output_path}",
+    "input_path_argument": "--input",
+    "output_path_argument": "--output"
+  },
+  "workflow": {
+    "workflow_id": "monthly-report-workflow",
+    "name": "Monthly report aggregation",
+    "trigger": {
+      "type": "MANUAL",
+      "description": "An operator supplies a confirmed CSV export."
+    },
+    "schedule": null,
+    "completion_condition": "A schema-valid JSON summary is written to the requested output path.",
+    "steps": [
+      {
+        "step_id": "read-input",
+        "name": "Read input CSV",
+        "action": "Parse a UTF-8 CSV containing customer and amount columns.",
+        "depends_on": [],
+        "input_refs": ["fixture:input"],
+        "output_refs": ["dataset:rows"],
+        "rule_refs": ["validation-required-columns"],
+        "human_gate": null,
+        "retry_policy": {
+          "max_attempts": 1,
+          "backoff_seconds": 0
+        }
+      },
+      {
+        "step_id": "aggregate",
+        "name": "Aggregate monthly values",
+        "action": "Count rows and sum amount as decimal-compatible numbers.",
+        "depends_on": ["read-input"],
+        "input_refs": ["dataset:rows"],
+        "output_refs": ["dataset:summary"],
+        "rule_refs": ["calculation-record-count", "calculation-total-amount"],
+        "human_gate": null,
+        "retry_policy": {
+          "max_attempts": 1,
+          "backoff_seconds": 0
+        }
+      },
+      {
+        "step_id": "approval-check",
+        "name": "Evaluate approval boundary",
+        "action": "Set approval_required when total amount exceeds the documented threshold.",
+        "depends_on": ["aggregate"],
+        "input_refs": ["dataset:summary"],
+        "output_refs": ["dataset:approved-summary"],
+        "rule_refs": ["decision-approval-threshold"],
+        "human_gate": "A human reviews output when approval_required is true.",
+        "retry_policy": {
+          "max_attempts": 1,
+          "backoff_seconds": 0
+        }
+      },
+      {
+        "step_id": "write-output",
+        "name": "Write JSON output",
+        "action": "Validate and write the result as UTF-8 JSON.",
+        "depends_on": ["approval-check"],
+        "input_refs": ["dataset:approved-summary"],
+        "output_refs": ["fixture:expected"],
+        "rule_refs": ["validation-output-schema"],
+        "human_gate": null,
+        "retry_policy": {
+          "max_attempts": 2,
+          "backoff_seconds": 1
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["customer", "amount"],
+      "properties": {
+        "customer": { "type": "string", "minLength": 1 },
+        "amount": { "type": "number", "minimum": 0 }
+      }
+    }
+  },
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "record_count": { "type": "integer", "minimum": 0 },
+      "total_amount": { "type": "number", "minimum": 0 },
+      "approval_required": { "type": "boolean" },
+      "error": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": ["MISSING_COLUMN", "INVALID_AMOUNT"]
+          },
+          "message": { "type": "string", "minLength": 1 },
+          "source_row": { "type": "integer", "minimum": 2 }
+        }
+      }
+    },
+    "oneOf": [
+      {
+        "required": ["record_count", "total_amount", "approval_required"],
+        "not": { "required": ["error"] }
+      },
+      {
+        "required": ["error"],
+        "not": {
+          "anyOf": [
+            { "required": ["record_count"] },
+            { "required": ["total_amount"] },
+            { "required": ["approval_required"] }
+          ]
+        }
+      }
+    ]
+  },
+  "field_mappings": [
+    {
+      "mapping_id": "mapping-record-count",
+      "source": "rows[*]",
+      "target": "record_count",
+      "transform": "COUNT(rows)",
+      "evidence_refs": ["fixture:input"]
+    },
+    {
+      "mapping_id": "mapping-total-amount",
+      "source": "rows[*].amount",
+      "target": "total_amount",
+      "transform": "SUM(DECIMAL(amount))",
+      "evidence_refs": ["fixture:input"]
+    },
+    {
+      "mapping_id": "mapping-approval-required",
+      "source": "total_amount",
+      "target": "approval_required",
+      "transform": "total_amount > 1000000",
+      "evidence_refs": ["rule:decision-approval-threshold"]
+    }
+  ],
+  "calculation_rules": [
+    {
+      "rule_id": "calculation-record-count",
+      "expression": "record_count = COUNT(rows)",
+      "evidence_refs": ["fixture:input"]
+    },
+    {
+      "rule_id": "calculation-total-amount",
+      "expression": "total_amount = SUM(DECIMAL(row.amount) for row in rows)",
+      "evidence_refs": ["fixture:input"]
+    }
+  ],
+  "decision_rules": [
+    {
+      "rule_id": "decision-approval-threshold",
+      "expression": "approval_required = total_amount > 1000000",
+      "evidence_refs": ["work-model:authority"]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule_id": "validation-required-columns",
+      "expression": "CSV headers must equal or contain customer and amount.",
+      "evidence_refs": ["fixture:input"]
+    },
+    {
+      "rule_id": "validation-output-schema",
+      "expression": "Output must validate against contracts/output.schema.json.",
+      "evidence_refs": ["fixture:expected"]
+    }
+  ],
+  "exceptions": [
+    {
+      "exception_id": "missing-column",
+      "condition": "The CSV omits customer or amount.",
+      "handling": "Stop without output and return a validation error naming the missing column.",
+      "evidence_refs": ["rule:validation-required-columns"]
+    },
+    {
+      "exception_id": "invalid-amount",
+      "condition": "An amount value is empty, negative, or non-numeric.",
+      "handling": "Stop without partial output and report the one-based source row.",
+      "evidence_refs": ["fixture:input"]
+    }
+  ],
+  "reliability": {
+    "retry": "Retry output file writes once after one second; input validation errors are not retried.",
+    "idempotency": "The same input bytes and contract version must produce semantically identical JSON.",
+    "rollback": "Write to a temporary file and atomically replace the target only after validation succeeds."
+  },
+  "human_oversight": {
+    "approval_points": [
+      "A human approves summaries whose approval_required value is true."
+    ],
+    "override_policy": "Overrides are external to this automation and must be recorded with operator, reason, and timestamp."
+  },
+  "integrations": [
+    {
+      "integration_id": "local-file-input",
+      "system_name": "Local filesystem",
+      "adapter_type": "FILE",
+      "operation": "Read one CSV and write one JSON file.",
+      "access_mode": "READ_WRITE",
+      "auth_mode": "NONE",
+      "environment_variables": [
+        {
+          "name": "LOG_LEVEL",
+          "description": "Application log verbosity.",
+          "required": false,
+          "secret": false
+        }
+      ],
+      "timeout_seconds": 30,
+      "retry_policy": "No read retry; retry output write once.",
+      "idempotency_key": "sha256(input bytes + contract version)",
+      "evidence_refs": ["fixture:input", "fixture:expected"]
+    }
+  ],
+  "module_responsibilities": [
+    {
+      "path": "src/monthly_report/__main__.py",
+      "responsibility": "Parse CLI arguments and return stable exit codes."
+    },
+    {
+      "path": "src/monthly_report/reader.py",
+      "responsibility": "Read and validate CSV rows against the input contract."
+    },
+    {
+      "path": "src/monthly_report/service.py",
+      "responsibility": "Apply calculation and decision rules without I/O."
+    },
+    {
+      "path": "src/monthly_report/writer.py",
+      "responsibility": "Validate and atomically write the JSON result."
+    },
+    {
+      "path": "tests/test_acceptance.py",
+      "responsibility": "Execute every exported acceptance fixture and compare semantic output."
+    }
+  ],
+  "operations": {
+    "logging": "Emit structured JSON logs without raw customer values or secrets.",
+    "audit": "Record input checksum, contract version, start/end time, result, approval flag, and error code.",
+    "security": "Reject paths outside the caller-selected working directory and never log file contents.",
+    "deployment": "Package as a local Python CLI; production scheduling and external system deployment are out of scope."
+  },
+  "acceptance_cases": [
+    {
+      "fixture_id": "normal-monthly-report",
+      "kind": "NORMAL",
+      "scenario": "Two valid rows are aggregated into the expected summary.",
+      "input_file_refs": ["REPLACED_BY_API"],
+      "expected_file_refs": ["REPLACED_BY_API"],
+      "execution_command": "python -m monthly_report --input {input_file} --output {actual_file}",
+      "assertions": [
+        {
+          "path": "$.record_count",
+          "operator": "EQUALS",
+          "expected": 2
+        },
+        {
+          "path": "$.total_amount",
+          "operator": "EQUALS",
+          "expected": 300.0
+        }
+      ]
+    },
+    {
+      "fixture_id": "missing-column-error",
+      "kind": "ERROR",
+      "scenario": "Missing required headers return a validation error and no partial output.",
+      "input_file_refs": ["REPLACED_BY_API"],
+      "expected_file_refs": ["REPLACED_BY_API"],
+      "execution_command": "python -m monthly_report --input {input_file} --output {actual_file}",
+      "assertions": [
+        {
+          "path": "$.error.code",
+          "operator": "EQUALS",
+          "expected": "MISSING_COLUMN"
+        }
+      ]
+    },
+    {
+      "fixture_id": "invalid-amount-exception",
+      "kind": "EXCEPTION",
+      "scenario": "A non-numeric amount reports its source row and no partial output.",
+      "input_file_refs": ["REPLACED_BY_API"],
+      "expected_file_refs": ["REPLACED_BY_API"],
+      "execution_command": "python -m monthly_report --input {input_file} --output {actual_file}",
+      "assertions": [
+        {
+          "path": "$.error.source_row",
+          "operator": "EQUALS",
+          "expected": 2
+        }
+      ]
+    },
+    {
+      "fixture_id": "approval-threshold",
+      "kind": "APPROVAL_REQUIRED",
+      "scenario": "A high total is marked for human approval before external use.",
+      "input_file_refs": ["REPLACED_BY_API"],
+      "expected_file_refs": ["REPLACED_BY_API"],
+      "execution_command": "python -m monthly_report --input {input_file} --output {actual_file}",
+      "assertions": [
+        {
+          "path": "$.approval_required",
+          "operator": "APPROVAL_REQUIRED",
+          "expected": true
+        }
+      ]
+    }
+  ]
+}

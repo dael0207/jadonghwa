@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Work Discovery AI MVP API
-  version: 0.1.0
+  version: 0.9.0
   description: >-
     텍스트·음성 인터뷰를 근거가 연결된 업무 모델로 변환하고,
-    개선·자동화 후보 및 G1 솔루션 명세를 생성하는 MVP API 계약.
+    개선·자동화 후보, G1 솔루션 명세, CODEGEN_READY 구현 패키지를 생성하는 MVP API 계약.
 servers:
   - url: https://api.example.local/v1
 security:
@@ -20,6 +20,8 @@ tags:
   - name: Blueprints
   - name: EvaluationRuns
   - name: ReleaseReadiness
+  - name: ImplementationPackages
+  - name: EvidenceFiles
   - name: Artifacts
 paths:
   /projects:
@@ -735,6 +737,227 @@ paths:
                 $ref: '#/components/schemas/SchemaValidationResult'
         '404':
           $ref: '#/components/responses/Problem'
+  /implementation-requirements/template:
+    get:
+      tags: [ImplementationPackages]
+      operationId: getImplementationRequirementsTemplate
+      summary: M9 구현 계약 입력 template 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /projects/{projectId}/evidence-files:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [EvidenceFiles]
+      operationId: uploadEvidenceFile
+      summary: CSV, JSON, XLSX sample evidence 분석 및 append-only 저장
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceFileUpload'
+      responses:
+        '201':
+          description: 저장됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFile'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '415':
+          $ref: '#/components/responses/Problem'
+    get:
+      tags: [EvidenceFiles]
+      operationId: listProjectEvidenceFiles
+      summary: 프로젝트 evidence file 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvidenceFile'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /evidence-files/{evidenceFileId}/confirm:
+    parameters:
+      - $ref: '#/components/parameters/EvidenceFileId'
+    post:
+      tags: [EvidenceFiles]
+      operationId: confirmEvidenceFile
+      summary: 추출 schema와 sample을 사용자 확인 이벤트로 기록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceFileConfirm'
+      responses:
+        '200':
+          description: 확인됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFile'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/implementation-requirements:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [ImplementationPackages]
+      operationId: recordImplementationRequirements
+      summary: 사용자 확인 구현 계약을 append-only 저장
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImplementationRequirementsCreate'
+      responses:
+        '201':
+          description: 저장됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImplementationRequirements'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/implementation-requirements/latest:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [ImplementationPackages]
+      operationId: getLatestImplementationRequirements
+      summary: 최신 구현 계약 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImplementationRequirements'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /projects/{projectId}/implementation-packages:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [ImplementationPackages]
+      operationId: createImplementationPackage
+      summary: 최신 FULL_G1 blueprint와 구현 계약으로 M9 package 생성
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImplementationPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+    get:
+      tags: [ImplementationPackages]
+      operationId: listProjectImplementationPackages
+      summary: 프로젝트 implementation package 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImplementationPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /implementation-packages/{implementationPackageId}:
+    parameters:
+      - $ref: '#/components/parameters/ImplementationPackageId'
+    get:
+      tags: [ImplementationPackages]
+      operationId: getImplementationPackage
+      summary: implementation package 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImplementationPackage'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /implementation-packages/{implementationPackageId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/ImplementationPackageId'
+    post:
+      tags: [ImplementationPackages]
+      operationId: validateImplementationPackage
+      summary: implementation-package-v1 schema 검증
+      responses:
+        '200':
+          description: 검증 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaValidationResult'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /implementation-packages/{implementationPackageId}/codegen-readiness:
+    parameters:
+      - $ref: '#/components/parameters/ImplementationPackageId'
+    get:
+      tags: [ImplementationPackages]
+      operationId: getCodegenReadiness
+      summary: blocker, follow-up question, CODEGEN_READY gate 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodegenReadiness'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /implementation-packages/{implementationPackageId}/export.zip:
+    parameters:
+      - $ref: '#/components/parameters/ImplementationPackageId'
+      - name: mode
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [draft, codegen]
+          default: codegen
+    get:
+      tags: [ImplementationPackages]
+      operationId: exportImplementationPackageZip
+      summary: DRAFT 또는 CODEGEN_READY implementation ZIP 생성
+      responses:
+        '200':
+          description: ZIP archive
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
   /opportunities/{opportunityId}/select:
     parameters:
       - $ref: '#/components/parameters/OpportunityId'
@@ -864,6 +1087,18 @@ components:
         type: string
     ReleaseReadinessId:
       name: releaseReadinessId
+      in: path
+      required: true
+      schema:
+        type: string
+    EvidenceFileId:
+      name: evidenceFileId
+      in: path
+      required: true
+      schema:
+        type: string
+    ImplementationPackageId:
+      name: implementationPackageId
       in: path
       required: true
       schema:
@@ -1319,6 +1554,177 @@ components:
         schema_valid:
           type: boolean
         created_at:
+          type: string
+          format: date-time
+    EvidenceFileUpload:
+      type: object
+      additionalProperties: false
+      required: [role, filename, content_type, content_base64]
+      properties:
+        role:
+          type: string
+          enum: [INPUT, EXPECTED_OUTPUT]
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 200
+        content_type:
+          type: string
+          minLength: 1
+          maxLength: 100
+        content_base64:
+          type: string
+          contentEncoding: base64
+    EvidenceFileConfirm:
+      type: object
+      additionalProperties: false
+      required: [confirmed]
+      properties:
+        confirmed:
+          type: boolean
+        confirmed_by:
+          type: string
+          minLength: 1
+          maxLength: 100
+          default: local-user
+    EvidenceFile:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - project_id
+        - role
+        - filename
+        - content_type
+        - size_bytes
+        - sha256
+        - extracted_schema
+        - sample_values
+        - confirmed
+        - created_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        role:
+          type: string
+          enum: [INPUT, EXPECTED_OUTPUT]
+        filename:
+          type: string
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          minimum: 1
+        sha256:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+        extracted_schema:
+          type: object
+          additionalProperties: true
+        sample_values:
+          type: object
+          additionalProperties: true
+        confirmed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    ImplementationRequirementsCreate:
+      type: object
+      additionalProperties: false
+      required: [payload]
+      properties:
+        payload:
+          type: object
+          additionalProperties: true
+        confirmed:
+          type: boolean
+          default: false
+    ImplementationRequirements:
+      type: object
+      additionalProperties: false
+      required: [id, project_id, payload, confirmed, created_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        confirmed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    ImplementationPackage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - project_id
+        - blueprint_id
+        - payload
+        - schema_valid
+        - readiness_status
+        - created_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        blueprint_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+          description: implementation-package-v1.schema.json에 의해 검증되는 객체
+        schema_valid:
+          type: boolean
+        readiness_status:
+          type: string
+          enum: [DESIGN_READY, IMPLEMENTATION_READY, CODEGEN_READY]
+        created_at:
+          type: string
+          format: date-time
+    CodegenReadiness:
+      type: object
+      additionalProperties: false
+      required:
+        - package_id
+        - project_id
+        - status
+        - codegen_ready
+        - blockers
+        - follow_up_questions
+        - checks
+        - evaluated_at
+      properties:
+        package_id:
+          type: string
+        project_id:
+          type: string
+        status:
+          type: string
+          enum: [DESIGN_READY, IMPLEMENTATION_READY, CODEGEN_READY]
+        codegen_ready:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            type: string
+        follow_up_questions:
+          type: array
+          items:
+            type: string
+        checks:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        evaluated_at:
           type: string
           format: date-time
     JsonPatchOperation:

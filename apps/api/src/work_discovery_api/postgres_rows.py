@@ -4,13 +4,22 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, LiteralString, cast
 
-from work_discovery_api.domain import AnswerStatus, AuditAction, InterviewStatus
+from work_discovery_api.domain import (
+    AnswerStatus,
+    AuditAction,
+    EvidenceFileRole,
+    ImplementationReadinessStatus,
+    InterviewStatus,
+)
 from work_discovery_api.models import (
     AnswerRead,
     AuditEventRead,
     BlueprintRead,
     DesignPackageRead,
     EvaluationRunRead,
+    EvidenceFileRead,
+    ImplementationPackageRead,
+    ImplementationRequirementsRead,
     InterviewRead,
     JsonObject,
     OpportunityRead,
@@ -141,6 +150,45 @@ def release_readiness_from_row(row: Row) -> ReleaseReadinessRead:
         project_id=str(row["project_id"]),
         payload=cast("JsonObject", row["payload"]),
         schema_valid=bool(row["schema_valid"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def evidence_file_from_row(row: Row) -> EvidenceFileRead:
+    return EvidenceFileRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        role=EvidenceFileRole(str(row["role"])),
+        filename=str(row["filename"]),
+        content_type=str(row["content_type"]),
+        size_bytes=int_value(row["size_bytes"]),
+        sha256=str(row["sha256"]),
+        content=bytes(cast("bytes", row["content"])),
+        extracted_schema=cast("JsonObject", row["extracted_schema"]),
+        sample_values=cast("JsonObject", row["sample_values"]),
+        confirmed=bool(row["confirmed"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def implementation_requirements_from_row(row: Row) -> ImplementationRequirementsRead:
+    return ImplementationRequirementsRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        payload=cast("JsonObject", row["payload"]),
+        confirmed=bool(row["confirmed"]),
+        created_at=cast("datetime", row["created_at"]),
+    )
+
+
+def implementation_package_from_row(row: Row) -> ImplementationPackageRead:
+    return ImplementationPackageRead(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        blueprint_id=str(row["blueprint_id"]),
+        payload=cast("JsonObject", row["payload"]),
+        schema_valid=bool(row["schema_valid"]),
+        readiness_status=ImplementationReadinessStatus(str(row["readiness_status"])),
         created_at=cast("datetime", row["created_at"]),
     )
 

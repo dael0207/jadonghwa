@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "MISSING_COLUMN",
+    "message": "Missing required column: amount"
+  }
+}

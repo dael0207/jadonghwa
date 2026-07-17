@@ -119,6 +119,51 @@ export type ReleaseReadinessReport = {
   readonly created_at: string
 }
 
+export type EvidenceFileRole = "INPUT" | "EXPECTED_OUTPUT"
+
+export type EvidenceFile = {
+  readonly id: string
+  readonly project_id: string
+  readonly role: EvidenceFileRole
+  readonly filename: string
+  readonly content_type: string
+  readonly size_bytes: number
+  readonly sha256: string
+  readonly extracted_schema: Record<string, unknown>
+  readonly sample_values: Record<string, unknown>
+  readonly confirmed: boolean
+  readonly created_at: string
+}
+
+export type CodegenReadiness = {
+  readonly package_id: string
+  readonly project_id: string
+  readonly status: "DESIGN_READY" | "IMPLEMENTATION_READY" | "CODEGEN_READY"
+  readonly codegen_ready: boolean
+  readonly blockers: readonly string[]
+  readonly follow_up_questions: readonly string[]
+  readonly checks: readonly Record<string, unknown>[]
+  readonly evaluated_at: string
+}
+
+export type ImplementationPackage = {
+  readonly id: string
+  readonly project_id: string
+  readonly blueprint_id: string
+  readonly payload: Record<string, unknown>
+  readonly schema_valid: boolean
+  readonly readiness_status: CodegenReadiness["status"]
+  readonly created_at: string
+}
+
+export type ImplementationRequirements = {
+  readonly id: string
+  readonly project_id: string
+  readonly payload: Record<string, unknown>
+  readonly confirmed: boolean
+  readonly created_at: string
+}
+
 export type Readiness = {
   readonly project_id: string
   readonly interview_id: string | null

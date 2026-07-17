@@ -641,7 +641,7 @@ export function M8Panel(props: M8PanelProps) {
 export function AuditPanel({ events }: { readonly events: readonly AuditEvent[] }) {
   return (
     <section className="panel stack wide">
-      <h2>10. Audit events</h2>
+      <h2>11. Audit events</h2>
       {events.length === 0 ? <p className="muted">아직 표시할 감사 이벤트가 없습니다.</p> : null}
       {events.map((event) => (
         <p key={event.id}>

@@ -5,7 +5,13 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from work_discovery_api.domain import AnswerStatus, AuditAction, InterviewStatus
+from work_discovery_api.domain import (
+    AnswerStatus,
+    AuditAction,
+    EvidenceFileRole,
+    ImplementationReadinessStatus,
+    InterviewStatus,
+)
 
 type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | Sequence[JsonValue] | Mapping[str, JsonValue]
@@ -213,6 +219,105 @@ class ReleaseReadinessRead(BaseModel):
     payload: JsonObject
     schema_valid: bool
     created_at: datetime
+
+
+class EvidenceFileUpload(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    role: EvidenceFileRole
+    filename: str = Field(min_length=1, max_length=200)
+    content_type: str = Field(min_length=1, max_length=100)
+    content_base64: str = Field(min_length=1)
+
+
+class EvidenceFileConfirm(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    confirmed: bool
+    confirmed_by: str = Field(default="local-user", min_length=1, max_length=100)
+
+
+class EvidenceFileRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    role: EvidenceFileRole
+    filename: str
+    content_type: str
+    size_bytes: int
+    sha256: str
+    content: bytes = Field(exclude=True, repr=False)
+    extracted_schema: JsonObject
+    sample_values: JsonObject
+    confirmed: bool
+    created_at: datetime
+
+
+class EvidenceFileStoreCreate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    project_id: str
+    role: EvidenceFileRole
+    filename: str
+    content_type: str
+    content: bytes
+    sha256: str
+    extracted_schema: JsonObject
+    sample_values: JsonObject
+
+
+class ImplementationRequirementsCreate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    payload: JsonObject
+    confirmed: bool = False
+
+
+class ImplementationRequirementsRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    payload: JsonObject
+    confirmed: bool
+    created_at: datetime
+
+
+class ImplementationPackageRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    project_id: str
+    blueprint_id: str
+    payload: JsonObject
+    schema_valid: bool
+    readiness_status: ImplementationReadinessStatus
+    created_at: datetime
+
+
+class ImplementationPackageStoreCreate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    package_id: str
+    project_id: str
+    blueprint_id: str
+    payload: JsonObject
+    valid: bool
+    readiness_status: ImplementationReadinessStatus
+
+
+class CodegenReadinessRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    package_id: str
+    project_id: str
+    status: ImplementationReadinessStatus
+    codegen_ready: bool
+    blockers: tuple[str, ...]
+    follow_up_questions: tuple[str, ...]
+    checks: tuple[JsonObject, ...]
+    evaluated_at: datetime
 
 
 class OpportunityValidateRequest(BaseModel):

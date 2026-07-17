@@ -35,6 +35,32 @@ def main() -> None:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         example = json.loads(example_path.read_text(encoding="utf-8"))
         Draft202012Validator(schema).validate(example)
+    m9_requirements = json.loads(
+        (
+            paths.root / "examples" / "m9" / "monthly-report-implementation-requirements.json"
+        ).read_text(encoding="utf-8"),
+    )
+    Draft202012Validator(
+        json.loads(paths.automation_workflow_schema.read_text(encoding="utf-8")),
+    ).validate(m9_requirements["workflow"])
+    integration_validator = Draft202012Validator(
+        json.loads(paths.integration_contract_schema.read_text(encoding="utf-8")),
+    )
+    for integration in m9_requirements["integrations"]:
+        integration_validator.validate(integration)
+    fixture_validator = Draft202012Validator(
+        json.loads(paths.acceptance_fixture_schema.read_text(encoding="utf-8")),
+    )
+    for fixture in m9_requirements["acceptance_cases"]:
+        fixture_validator.validate(fixture)
+    for schema_path in (
+        paths.implementation_package_schema,
+        paths.codegen_readiness_schema,
+        paths.export_manifest_schema,
+    ):
+        Draft202012Validator.check_schema(
+            json.loads(schema_path.read_text(encoding="utf-8")),
+        )
     print("schema smoke OK")
 
 

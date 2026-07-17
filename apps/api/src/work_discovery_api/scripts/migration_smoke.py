@@ -20,6 +20,10 @@ REQUIRED_TABLES: frozenset[str] = frozenset(
         "blueprints",
         "evaluation_runs",
         "release_readiness_reports",
+        "evidence_files",
+        "evidence_file_confirmations",
+        "implementation_requirements",
+        "implementation_packages",
         "audit_events",
         "deletion_jobs",
     },
@@ -29,8 +33,7 @@ REQUIRED_TABLES: frozenset[str] = frozenset(
 def main() -> None:
     migration_dir = default_contract_paths().root / "infra" / "db" / "migrations"
     sql = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted(migration_dir.glob("*.sql"))
+        path.read_text(encoding="utf-8") for path in sorted(migration_dir.glob("*.sql"))
     )
     created = frozenset(re.findall(r"CREATE TABLE IF NOT EXISTS ([a-z_]+)", sql))
     missing = REQUIRED_TABLES - created
